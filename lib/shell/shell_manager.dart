@@ -34,8 +34,7 @@ class ShellManager {
   }
 
   Future<void> createShellWindows() async {
-    // int monitorCount = (await hyprIPC.getMonitors()).length;
-    int monitorCount = 3;
+    int monitorCount = (await hyprCtl.getMonitors()).length;
     try {
       for (int i = 1; i < monitorCount; i++) {
         await createTaskbar(monitorIndex: i);
