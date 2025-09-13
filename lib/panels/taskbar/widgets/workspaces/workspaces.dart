@@ -137,22 +137,6 @@ class _WorkspacesState extends State<Workspaces> {
                   : SizedBox(width: workspaceSize, height: workspaceSize),
           ],
         ),
-        // Container(
-        //   width: workspaceSize - 4,
-        //   height: workspaceSize - 4,
-        //   margin: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-        //   transform: Matrix4.translation(
-        //     Vector3.array([
-        //       (workspaceSize * (currentWorkspace - 1 - (10 * widget.monitorIndex))),
-        //       0,
-        //       0,
-        //     ]),
-        //   ),
-        //   decoration: BoxDecoration(
-        //     borderRadius: BorderRadius.circular(workspaceSize / 2),
-        //     color: Theme.of(context).colorScheme.primary,
-        //   ),
-        // ),
         ActiveWorkspace(
           workspaceSize: workspaceSize,
           currentIndex: (currentWorkspace - 1) - monitorOffset,

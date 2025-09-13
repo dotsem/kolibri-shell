@@ -1,5 +1,7 @@
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/systray/clock.dart';
+import 'package:hypr_flutter/services/clock.dart';
 
 class SystemTrayWidget extends StatelessWidget {
   @override
@@ -28,7 +30,7 @@ class SystemTrayWidget extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8),
-          Text(DateTime.now().toString().substring(11, 16), style: TextStyle(color: Colors.white, fontSize: 14)),
+          Clock(),
           SizedBox(width: 8),
         ],
       ),

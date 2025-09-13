@@ -15,6 +15,7 @@ const darkTheme = ColorScheme(
   secondaryContainer: Color.fromARGB(255, 85, 82, 82),
   onSecondaryContainer: Color(0xFFEAE0E7),
   shadow: Colors.black,
+  scrim: Color.fromARGB(255, 138, 138, 138),
   inverseSurface: Color(0xFFEAE0E7),
   onInverseSurface: Color(0xFF2D2D2D),
   inversePrimary: Color(0xFFFF7B00),
