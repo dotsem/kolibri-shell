@@ -34,8 +34,9 @@ class HyprlandCtl {
     return Workspace.fromJson(jsonDecode(await runHyprctlCommand('-j activeworkspace')));
   }
 
-  Future<String> getMonitors() async {
-    return await runHyprctlCommand('monitors');
+  Future<List<Monitor>> getMonitors() async {
+    List<dynamic> monitors = jsonDecode(await runHyprctlCommand('-j monitors'));
+    return monitors.map((e) => Monitor.fromJson(e)).toList();
   }
 
   Future<List<Workspace>> getWorkspaces() async {
