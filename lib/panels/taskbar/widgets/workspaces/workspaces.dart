@@ -23,20 +23,24 @@ class _WorkspacesState extends State<Workspaces> {
   StreamSubscription<HyprlandEvent>? _closeWindowSubscription;
 
   late int monitorOffset;
-  int currentWorkspace = 1;
+  int currentWorkspace = 0;
   final double workspaceSize = 30;
   List<bool> busyWorkspaces = List.filled(10, false);
 
   void initState() {
     super.initState();
+    monitorOffset = (widget.monitorIndex * config.workspacesPerMonitor);
     _subscribeToEvents();
     updateBusyWorkspaces();
-    monitorOffset = (widget.monitorIndex * config.workspacesPerMonitor);
+    hyprCtl.getMonitors().then((monitors) {
+      setState(() {
+        currentWorkspace = monitors[widget.monitorIndex].activeWorkspace["id"];
+      });
+    });
   }
 
   bool inMonitorScope(int workspaceId) {
-    return workspaceId > monitorOffset &&
-        workspaceId <= monitorOffset + config.workspacesPerMonitor;
+    return workspaceId > monitorOffset && workspaceId <= monitorOffset + config.workspacesPerMonitor;
   }
 
   Future<void> updateBusyWorkspaces() async {
@@ -54,17 +58,11 @@ class _WorkspacesState extends State<Workspaces> {
   }
 
   void _subscribeToEvents() {
-    _workspaceSubscription = hyprIPC
-        .getEventStream(HyprlandEventType.workspace)
-        .listen(_updateWorkspace);
+    _workspaceSubscription = hyprIPC.getEventStream(HyprlandEventType.workspace).listen(_updateWorkspace);
 
-    _openWindowSubscription = hyprIPC
-        .getEventStream(HyprlandEventType.openwindow)
-        .listen((event) => updateBusyWorkspaces());
+    _openWindowSubscription = hyprIPC.getEventStream(HyprlandEventType.openwindow).listen((event) => updateBusyWorkspaces());
 
-    _closeWindowSubscription = hyprIPC
-        .getEventStream(HyprlandEventType.closewindow)
-        .listen((event) => updateBusyWorkspaces());
+    _closeWindowSubscription = hyprIPC.getEventStream(HyprlandEventType.closewindow).listen((event) => updateBusyWorkspaces());
   }
 
   void _updateWorkspace(HyprlandEvent event) {
@@ -93,10 +91,7 @@ class _WorkspacesState extends State<Workspaces> {
                   width: workspaceSize,
                   height: workspaceSize,
                   margin: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(workspaceSize / 2),
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                  ),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(workspaceSize / 2), color: Theme.of(context).colorScheme.primaryContainer),
                 ),
           ],
         ),
@@ -104,17 +99,8 @@ class _WorkspacesState extends State<Workspaces> {
           width: workspaceSize - 4,
           height: workspaceSize - 4,
           margin: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-          transform: Matrix4.translation(
-            Vector3.array([
-              (workspaceSize * (currentWorkspace - 1 - (10 * widget.monitorIndex))),
-              0,
-              0,
-            ]),
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(workspaceSize / 2),
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          transform: Matrix4.translation(Vector3.array([(workspaceSize * (currentWorkspace - 1 - (10 * widget.monitorIndex))), 0, 0])),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(workspaceSize / 2), color: Theme.of(context).colorScheme.primary),
         ),
 
         Row(
@@ -130,13 +116,7 @@ class _WorkspacesState extends State<Workspaces> {
                       hyprCtl.switchToWorkspace(i);
                     },
 
-                    icon: Text(
-                      '$i',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontSize: 12,
-                      ),
-                    ),
+                    icon: Text('$i', style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 12)),
                   ),
                 ),
               ),
