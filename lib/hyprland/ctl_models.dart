@@ -87,3 +87,58 @@ class Monitor {
       mirrorOf = json['mirrorOf'] as String,
       availableModes = List<String>.from(json['availableModes']);
 }
+
+class Client {
+  String adress;
+  bool mapped;
+  bool hidden;
+  List<int> at;
+  List<int> size;
+  Map<String, dynamic> workspace;
+  bool floating;
+  bool pseudo;
+  int monitor;
+  String clientClass;
+  String title;
+  String initialClass;
+  String initialTitle;
+  int pid;
+  bool xwayland;
+  bool pinned;
+  int fullscreen;
+  int fullscreenClient;
+  List grouped;
+  List tags;
+  String swallowing;
+  int focusHistoryId;
+  bool inhibitingIdle;
+  String xdgTag;
+  String xdgDescription;
+
+  Client.fromJson(Map<String, dynamic> json)
+    : adress = json['address'] as String,
+      mapped = json['mapped'] as bool,
+      hidden = json['hidden'] as bool,
+      at = List<int>.from(json['at']),
+      size = List<int>.from(json['size']),
+      workspace = json['workspace'] as Map<String, dynamic>,
+      floating = json['floating'] as bool,
+      pseudo = json['pseudo'] as bool,
+      monitor = json['monitor'] as int,
+      clientClass = json['class'] as String,
+      title = json['title'] as String,
+      initialClass = json['initialClass'] as String,
+      initialTitle = json['initialTitle'] as String,
+      pid = json['pid'] as int,
+      xwayland = json['xwayland'] as bool,
+      pinned = json['pinned'] as bool,
+      fullscreen = json['fullscreen'] as int,
+      fullscreenClient = json['fullscreenClient'] as int,
+      grouped = List.from(json['grouped']),
+      tags = List.from(json['tags']),
+      swallowing = json['swallowing'] as String,
+      focusHistoryId = json['focusHistoryID'] as int,
+      inhibitingIdle = json['inhibitingIdle'] as bool,
+      xdgTag = json['xdgTag'] as String,
+      xdgDescription = json['xdgDescription'] as String;
+}

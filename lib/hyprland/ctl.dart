@@ -43,6 +43,11 @@ class HyprlandCtl {
     List<dynamic> workspaces = jsonDecode(await runHyprctlCommand('-j workspaces'));
     return workspaces.map((e) => Workspace.fromJson(e)).toList();
   }
+
+  Future<List<Client>> getClients() async {
+    List<dynamic> clients = jsonDecode(await runHyprctlCommand('-j clients'));
+    return clients.map((e) => Client.fromJson(e)).toList();
+  }
   // Future<void> _dispatch(String cmd, [String? args]) async {
   //   await Process.run("sh", ["-c", cmd, args ?? ""]);
   // }

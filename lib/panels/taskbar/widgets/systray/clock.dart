@@ -14,11 +14,11 @@ class Clock extends StatelessWidget {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(clock.now.time),
             Text(
               clock.now.date,
               style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim),
             ),
+            Text(clock.now.time),
           ],
         );
       },

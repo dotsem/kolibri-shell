@@ -1,5 +1,6 @@
 // shell/shell_manager.dart
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
+import 'package:fl_linux_window_manager/models/keyboard_mode.dart';
 import 'package:fl_linux_window_manager/models/screen_edge.dart';
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/data.dart';
@@ -54,19 +55,41 @@ class ShellManager {
   Future<void> createTaskbar({required int monitorIndex}) async {
     final windowId = "taskbar_$monitorIndex";
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Taskbar-$monitorIndex", isLayer: true, width: 1920, height: 48, args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"]);
+    await FlLinuxWindowManager.instance.createWindow(
+      windowId: windowId,
+      title: "Taskbar-$monitorIndex",
+      isLayer: true,
+      width: 1920,
+      height: 48,
+      args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"],
+    );
     await FlLinuxWindowManager.instance.enableLayerAutoExclusive(windowId: windowId);
 
-    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value, windowId: windowId);
+    await FlLinuxWindowManager.instance.setLayerAnchor(
+      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
+      windowId: windowId,
+    );
     await FlLinuxWindowManager.instance.setMonitor(monitorId: monitorIndex, windowId: windowId);
+    FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
+
     await _createSharedChannel(windowId);
   }
 
   Future<void> createLeftSidebar() async {
     const windowId = WindowIds.leftSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Left Sidebar", isLayer: true, width: 200, height: 1032, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"]);
-    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.bottom.value, windowId: windowId);
+    await FlLinuxWindowManager.instance.createWindow(
+      windowId: windowId,
+      title: "Left Sidebar",
+      isLayer: true,
+      width: 200,
+      height: 1032,
+      args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"],
+    );
+    await FlLinuxWindowManager.instance.setLayerAnchor(
+      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.bottom.value,
+      windowId: windowId,
+    );
     await _createSharedChannel(windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
   }
@@ -74,14 +97,28 @@ class ShellManager {
   Future<void> createRightSidebar() async {
     const windowId = WindowIds.rightSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: 200, height: 1032, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"]);
-    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
+    await FlLinuxWindowManager.instance.createWindow(
+      windowId: windowId,
+      title: "Right Sidebar",
+      isLayer: true,
+      width: 200,
+      height: 1032,
+      args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"],
+    );
+    await FlLinuxWindowManager.instance.setLayerAnchor(
+      anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value,
+      windowId: windowId,
+    );
     await _createSharedChannel(windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
   }
 
   Future<void> _createSharedChannel(String windowId) async {
-    await FlLinuxWindowManager.instance.createSharedMethodChannel(channelName: "shell_communication", shareWithWindowId: "main", windowId: windowId);
+    await FlLinuxWindowManager.instance.createSharedMethodChannel(
+      channelName: "shell_communication",
+      shareWithWindowId: "main",
+      windowId: windowId,
+    );
   }
 
   void sendMessageToWindow(String windowId, String method, [dynamic args]) {

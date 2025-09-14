@@ -10,7 +10,6 @@ import 'package:hypr_flutter/window_ids.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
-  // hyprIPC.connect();
 
   // Store args for later use
   initialArgs.addAll(args);
@@ -23,7 +22,9 @@ void main(List<String> args) {
   FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none);
   FlLinuxWindowManager.instance.enableLayerAutoExclusive();
 
-  FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
+  FlLinuxWindowManager.instance.setLayerAnchor(
+    anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
+  );
   FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
 
   runApp(HyprlandShellApp());

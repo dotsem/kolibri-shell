@@ -2,6 +2,7 @@ import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/config/theme/color/dark.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/center/active_window.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/systray.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/workspaces/workspaces.dart';
 
@@ -41,7 +42,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                 ),
                 Workspaces(monitorIndex: widget.monitorIndex),
                 Spacer(),
-                Text(widget.windowId),
+                ActiveWindow(),
                 Spacer(),
                 _buildAppLauncher(),
                 SystemTrayWidget(),
@@ -61,17 +62,6 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
           print("App launcher clicked");
           // Handle app launcher
         },
-      ),
-    );
-  }
-
-  Widget _buildDebugControls() {
-    if (_shellManager.createdWindows.isNotEmpty) return SizedBox.shrink();
-
-    return InputRegion(
-      child: ElevatedButton(
-        onPressed: () => _shellManager.createShellWindows(),
-        child: Text('Create Shell', style: TextStyle(fontSize: 10)),
       ),
     );
   }

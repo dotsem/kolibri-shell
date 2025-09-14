@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
@@ -27,13 +28,13 @@ class _WorkspacesState extends State<Workspaces> {
   late int monitorOffset;
   int currentWorkspace = 0;
   final double workspaceSize = 30;
-  List<bool> busyWorkspaces = List.filled(10, false);
+  List<String?> occupiedWorkspaces = List.filled(10, null);
 
   void initState() {
     super.initState();
     monitorOffset = (widget.monitorIndex * config.workspacesPerMonitor);
     _subscribeToEvents();
-    updateBusyWorkspaces();
+    updateOccupiedWorkspaces();
     hyprCtl.getMonitors().then((monitors) {
       setState(() {
         currentWorkspace = monitors[widget.monitorIndex].activeWorkspace["id"];
@@ -46,17 +47,19 @@ class _WorkspacesState extends State<Workspaces> {
         workspaceId <= monitorOffset + config.workspacesPerMonitor;
   }
 
-  Future<void> updateBusyWorkspaces() async {
-    List<Workspace> workspaces = await hyprCtl.getWorkspaces();
-    busyWorkspaces = List.filled(10, false);
-    for (Workspace workspace in workspaces) {
-      int id = workspace.id;
-      if (inMonitorScope(id) && workspace.windows > 0) {
-        busyWorkspaces[id - monitorOffset - 1] = true;
+  Future<void> updateOccupiedWorkspaces() async {
+    List<Client> workspacesClients = await hyprCtl.getClients();
+    occupiedWorkspaces = List.filled(10, null);
+    Set<int> handledWorkspaceIds = {};
+    for (Client client in workspacesClients) {
+      int id = client.workspace["id"];
+      if (inMonitorScope(id) && !handledWorkspaceIds.contains(id)) {
+        occupiedWorkspaces[id - monitorOffset - 1] = client.clientClass;
+        handledWorkspaceIds.add(id);
       }
     }
     setState(() {
-      busyWorkspaces = busyWorkspaces.toList();
+      occupiedWorkspaces = occupiedWorkspaces.toList();
     });
   }
 
@@ -67,15 +70,15 @@ class _WorkspacesState extends State<Workspaces> {
 
     _openWindowSubscription = hyprIPC
         .getEventStream(HyprlandEventType.openwindow)
-        .listen((event) => updateBusyWorkspaces());
+        .listen((event) => updateOccupiedWorkspaces());
 
     _closeWindowSubscription = hyprIPC
         .getEventStream(HyprlandEventType.closewindow)
-        .listen((event) => updateBusyWorkspaces());
+        .listen((event) => updateOccupiedWorkspaces());
 
     _moveWindowSubscription = hyprIPC
         .getEventStream(HyprlandEventType.movewindow)
-        .listen((event) => updateBusyWorkspaces());
+        .listen((event) => updateOccupiedWorkspaces());
   }
 
   void _updateWorkspace(HyprlandEvent event) {
@@ -99,11 +102,12 @@ class _WorkspacesState extends State<Workspaces> {
     Radius topRight = Radius.circular(workspaceSize / 2);
     Radius bottomLeft = Radius.circular(workspaceSize / 2);
     Radius bottomRight = Radius.circular(workspaceSize / 2);
-    if (workspaceId > 0 && busyWorkspaces[workspaceId - 1]) {
+    if (workspaceId > 0 && occupiedWorkspaces[workspaceId - 1] != null) {
       topLeft = Radius.zero;
       bottomLeft = Radius.zero;
     }
-    if (workspaceId < config.workspacesPerMonitor - 1 && busyWorkspaces[workspaceId + 1]) {
+    if (workspaceId < config.workspacesPerMonitor - 1 &&
+        occupiedWorkspaces[workspaceId + 1] != null) {
       topRight = Radius.zero;
       bottomRight = Radius.zero;
     }
@@ -123,8 +127,8 @@ class _WorkspacesState extends State<Workspaces> {
       children: [
         Row(
           children: [
-            for (int i = 0; i < busyWorkspaces.length; i++)
-              (busyWorkspaces[i])
+            for (int i = 0; i < occupiedWorkspaces.length; i++)
+              (occupiedWorkspaces[i] != null)
                   ? Container(
                       width: workspaceSize,
                       height: workspaceSize,
@@ -155,13 +159,23 @@ class _WorkspacesState extends State<Workspaces> {
                       hyprCtl.switchToWorkspace(i);
                     },
 
-                    icon: Text(
-                      '$i',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontSize: 12,
-                      ),
-                    ),
+                    icon:
+                        // (occupiedWorkspaces[i - monitorOffset - 1] != null)
+                        //     ? Image.file(
+                        //         File(() {
+                        //           print(occupiedWorkspaces[i - monitorOffset - 1]);
+                        //           return appIcons[occupiedWorkspaces[i - monitorOffset - 1]] ?? "";
+                        //         }()),
+                        //         width: 20,
+                        //         height: 20,
+                        //       ):
+                        Text(
+                          '$i',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            fontSize: 12,
+                          ),
+                        ),
                   ),
                 ),
               ),
