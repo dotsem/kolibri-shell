@@ -7,12 +7,19 @@ import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/shell/shell_router.dart';
 import 'package:hypr_flutter/window_ids.dart';
+import 'package:pipewire/pipewire.dart';
 
-void main(List<String> args) {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-
   // Store args for later use
   initialArgs.addAll(args);
+
+  final streams = await Pipewire.getAvailableStreams();
+  for (final stream in streams) {
+    print(stream.applicationName);
+    print(stream.applicationId);
+    print(stream.isActive);
+  }
 
   // config for taskbar on window 0 (default)
   FlLinuxWindowManager.instance.setLayer(WindowLayer.top);
