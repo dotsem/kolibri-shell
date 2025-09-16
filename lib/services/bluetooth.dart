@@ -1,37 +1,44 @@
 import 'dart:io';
 
-class BluetoothService {
-  Future<String> getDeviceNameAndAddress() async {
-    try {
-      final result = await Process.run('bash', ['-c', "bluetoothctl info | awk -F': ' '/Name: /{name=\$2} /Device /{addr=\$2} END{print name\":\"addr}'"]);
-      return result.stdout.toString().trim();
-    } catch (e) {
-      return 'Device name/address error: $e';
-    }
-  }
+import 'package:bluez/bluez.dart';
+import 'package:flutter/foundation.dart';
 
-  Future<String> getTop10DevicesByConnection() async {
-    try {
-      const command = '''
-      bluetoothctl devices | grep "^Device" | while read -r _ mac name; do 
-        connected=\$(bluetoothctl info "\$mac" | grep -q "Connected: yes" && echo 1 || echo 0); 
-        echo "\${name}@\${connected}"; 
-      done | sort -t@ -k2 -r | head -n 10 | paste -sd "|" -
-      ''';
+class BluetoothService extends ChangeNotifier {
+  static final BluetoothService _instance = BluetoothService._internal();
 
-      final result = await Process.run('bash', ['-c', command]);
-      return result.stdout.toString().trim();
-    } catch (e) {
-      return 'Top 10 devices error: $e';
-    }
-  }
+  bool _connected = false;
+  bool available = false;
 
-  Future<String> isAnyDeviceConnected() async {
-    try {
-      final result = await Process.run('bash', ['-c', "bluetoothctl info | grep -q 'Connected: yes' && echo 1 || echo 0"]);
-      return result.stdout.toString().trim();
-    } catch (e) {
-      return 'Connection status error: $e';
-    }
+  bool get connected => _connected;
+
+  BlueZAdapter? adapter;
+  List<BlueZDevice> devices = [];
+
+  final bluetoothClient = BlueZClient();
+
+  factory BluetoothService() => _instance;
+
+  BluetoothService._internal() {
+    print("Initializing bluetooth service");
+    bluetoothClient.connect().then((_) {
+      if (bluetoothClient.adapters.isEmpty) {
+        available = false;
+        return;
+      } else {
+        if (bluetoothClient.adapters.length > 1 && kDebugMode) {
+          // ignore: avoid_print because hablaboblo
+          print("Multiple adapters found: ${bluetoothClient.adapters.length}, taking the first one");
+        }
+        available = true;
+        adapter = bluetoothClient.adapters.first;
+      }
+      for (BlueZDevice device in bluetoothClient.devices) {
+        devices.add(device);
+        if (device.connected) {
+          _connected = true;
+        }
+      }
+      notifyListeners();
+    });
   }
 }

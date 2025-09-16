@@ -1,6 +1,7 @@
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/battery.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/systray/bluetooth.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/clock.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/wifi.dart';
 import 'package:hypr_flutter/services/clock.dart';
@@ -24,6 +25,9 @@ class SystemTrayWidget extends StatelessWidget {
           Clock(),
           SizedBox(width: 8),
           WifiIndicator(),
+          SizedBox(width: 8),
+
+          BluetoothIndicator(),
         ],
       ),
     );

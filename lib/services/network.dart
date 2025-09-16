@@ -22,7 +22,7 @@ class NetworkManager extends ChangeNotifier {
   NetworkManager._internal() {
     Timer.periodic(Duration(seconds: 1), (_) {
       wifi.getConnectionStatus().then((value) {
-        print(value);
+        // print(value);
         networkModel = NetworkModel(value['status'], value['network'].ssid, value['network'].strength);
         notifyListeners();
       });
