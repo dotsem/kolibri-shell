@@ -7,19 +7,19 @@ import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/shell/shell_router.dart';
 import 'package:hypr_flutter/window_ids.dart';
-import 'package:pipewire/pipewire.dart';
+// import 'package:pipewire_song_info/pipewire_song_info.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   // Store args for later use
   initialArgs.addAll(args);
 
-  final streams = await Pipewire.getAvailableStreams();
-  for (final stream in streams) {
-    print(stream.applicationName);
-    print(stream.applicationId);
-    print(stream.isActive);
-  }
+  // final streams = await Pipewire.getAvailableStreams();
+  // for (final stream in streams) {
+  //   print(stream.applicationName);
+  //   print(stream.applicationId);
+  //   print(stream.isActive);
+  // }
 
   // config for taskbar on window 0 (default)
   FlLinuxWindowManager.instance.setLayer(WindowLayer.top);
@@ -29,9 +29,7 @@ void main(List<String> args) async {
   FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none);
   FlLinuxWindowManager.instance.enableLayerAutoExclusive();
 
-  FlLinuxWindowManager.instance.setLayerAnchor(
-    anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
-  );
+  FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
   FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
 
   runApp(HyprlandShellApp());

@@ -11,9 +11,11 @@ dependencies:
     sdk: flutter
   fl_linux_window_manager: 
     path: ../fl_linux_window_manager
-  pipewire:
+  pipewire_song_info:
     path: ../pipewire
   rxdart:
+  percent_indicator: ^4.2.5
+  battery_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:
