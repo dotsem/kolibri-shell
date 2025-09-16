@@ -1,69 +1,46 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
-class NetworkService {
-  bool wifi = false;
+import 'package:dbus_wifi/dbus_wifi.dart';
+import 'package:dbus_wifi/interfaces/nm_settings_remote_object.dart';
+import 'package:flutter/foundation.dart';
+
+Future<bool> isEthernetActiveConnection() async {
+  String result = (await Process.run("ip", ["route", "get", "1.1.1.1"])).stdout.toString();
+  return (result.split(" ")[4].contains("en"));
+}
+
+class NetworkManager extends ChangeNotifier {
+  static final NetworkManager _instance = NetworkManager._internal();
+  NetworkModel networkModel = NetworkModel(ConnectionStatus.disconnected, '', 0);
+
+  factory NetworkManager() => _instance;
+
+  DbusWifi wifi = DbusWifi();
+
+  NetworkManager._internal() {
+    Timer.periodic(Duration(seconds: 1), (_) {
+      wifi.getConnectionStatus().then((value) {
+        print(value);
+        networkModel = NetworkModel(value['status'], value['network'].ssid, value['network'].strength);
+        notifyListeners();
+      });
+    });
+  }
+}
+
+class NetworkModel {
+  ConnectionStatus connectionStatus;
+  String? ssid;
+  int? strength;
+  String? security;
   bool ethernet = false;
-  int updateInterval = 1000; // ms
-  String networkName = "";
-  int networkStrength = 0;
+  bool isConnected() => connectionStatus == ConnectionStatus.connected;
 
-  /// Returns a material symbol string representing the current state
-  String get materialSymbol {
-    if (ethernet) return "lan";
-    if (networkName.isNotEmpty && networkName != "lo") {
-      if (networkStrength > 80) return "signal_wifi_4_bar";
-      if (networkStrength > 60) return "network_wifi_3_bar";
-      if (networkStrength > 40) return "network_wifi_2_bar";
-      if (networkStrength > 20) return "network_wifi_1_bar";
-      return "signal_wifi_0_bar";
-    }
-    return "signal_wifi_off";
+  NetworkModel(this.connectionStatus, this.ssid, this.strength) {
+    isEthernetActiveConnection().then((value) => ethernet = value);
   }
 
-  /// Update all network state values
-  Future<void> update() async {
-    await _updateConnectionType();
-    await _updateNetworkName();
-    await _updateNetworkStrength();
-  }
-
-  Future<void> _updateConnectionType() async {
-    try {
-      final result = await Process.run('sh', ['-c', 'nmcli -t -f NAME,TYPE,DEVICE c show --active']);
-      final lines = result.stdout.toString().trim().split('\n');
-      bool hasEthernet = false;
-      bool hasWifi = false;
-
-      for (final line in lines) {
-        if (line.contains("ethernet")) {
-          hasEthernet = true;
-        } else if (line.contains("wireless")) {
-          hasWifi = true;
-        }
-      }
-      ethernet = hasEthernet;
-      wifi = hasWifi;
-    } catch (e) {
-      stderr.writeln("Connection type error: $e");
-    }
-  }
-
-  Future<void> _updateNetworkName() async {
-    try {
-      final result = await Process.run('sh', ['-c', 'nmcli -t -f NAME c show --active | head -1']);
-      networkName = result.stdout.toString().trim();
-    } catch (e) {
-      stderr.writeln("Network name error: $e");
-    }
-  }
-
-  Future<void> _updateNetworkStrength() async {
-    try {
-      final result = await Process.run('sh', ['-c', "nmcli -f IN-USE,SIGNAL,SSID device wifi | awk '/^\\*/{if (NR!=1) {print \$2}}'"]);
-      final data = result.stdout.toString().trim();
-      networkStrength = int.tryParse(data) ?? 0;
-    } catch (e) {
-      stderr.writeln("Network strength error: $e");
-    }
-  }
+  NetworkModel.fromJson(Map<String, dynamic> json) : connectionStatus = ConnectionStatus.values[json['status']], ssid = json['SSID'], strength = json['Strength'];
 }

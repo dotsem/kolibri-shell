@@ -32,7 +32,7 @@ void main(List<String> args) async {
   FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
   FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
 
-  runApp(HyprlandShellApp());
+  runApp(const HyprlandShellApp());
 }
 
 class HyprlandShellApp extends StatefulWidget {

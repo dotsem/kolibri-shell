@@ -15,7 +15,7 @@ enum BatteryStateEnhanced {
   s4(Icons.battery_4_bar_rounded, Colors.white),
   s5(Icons.battery_5_bar_rounded, Colors.white),
   s6(Icons.battery_6_bar_rounded, Colors.white),
-  full(Icons.battery_full_rounded, Colors.green),
+  full(Icons.battery_full_rounded, Color.fromARGB(255, 9, 255, 0)),
   charging(Icons.battery_charging_full_rounded, Colors.blue),
   connectedNotCharging(Icons.battery_alert_rounded, Colors.purple);
 
@@ -90,8 +90,10 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
           return BatteryStateEnhanced.s5;
         case < 85:
           return BatteryStateEnhanced.s6;
-        case < 95:
+        case > 95:
           return BatteryStateEnhanced.full;
+        default:
+          return BatteryStateEnhanced.s6;
       }
     } else if (batteryState == BatteryState.charging) {
       return BatteryStateEnhanced.charging;
@@ -123,7 +125,8 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
             lineWidth: 2,
             percent: batteryLevel / 100,
             center: Icon(batteryIcon, size: 22, color: batteryColor),
-            backgroundColor: Colors.transparent,
+            backgroundColor: batteryColor.withAlpha(100),
+
             progressBorderColor: batteryColor,
             progressColor: batteryColor,
           ),

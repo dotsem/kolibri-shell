@@ -8,6 +8,7 @@ class ClockService extends ChangeNotifier {
 
   ClockService._internal() {
     // Start the timer
+    print("clock started");
     Timer.periodic(Duration(milliseconds: 200), (_) {
       _taskbarClock = TaskbarClock.getClock();
       notifyListeners();
@@ -26,10 +27,7 @@ class TaskbarClock {
 
   static TaskbarClock getClock() {
     DateTime now = DateTime.now();
-    return TaskbarClock(
-      "${padMePls(now.day)}/${padMePls(now.month)}/${now.year}",
-      "${padMePls(now.hour)}:${padMePls(now.minute)}:${padMePls(now.second)}",
-    );
+    return TaskbarClock("${padMePls(now.day)}/${padMePls(now.month)}/${now.year}", "${padMePls(now.hour)}:${padMePls(now.minute)}:${padMePls(now.second)}");
   }
 
   static String padMePls(int time) {

@@ -16,6 +16,8 @@ dependencies:
   rxdart:
   percent_indicator: ^4.2.5
   battery_plus: ^7.0.0
+  bluez: ^0.8.3
+  dbus_wifi: ^0.0.6
 
 dev_dependencies:
   flutter_test:

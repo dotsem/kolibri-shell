@@ -46,6 +46,11 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                 Spacer(),
                 _buildAppLauncher(),
                 SystemTrayWidget(),
+                SidebarToggleButton(
+                  icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
+                  sidebarId: WindowIds.rightSidebar,
+                  taskbarId: widget.windowId,
+                ),
               ],
             ),
           ),
