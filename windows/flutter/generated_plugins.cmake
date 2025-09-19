@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   battery_plus
+  flutter_volume_controller
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

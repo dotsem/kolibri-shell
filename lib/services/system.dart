@@ -1,6 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 
-class SystemInfoService {
+import 'package:flutter/foundation.dart';
+
+class SystemInfoService extends ChangeNotifier {
+  static final SystemInfoService _instance = SystemInfoService._internal();
+  factory SystemInfoService() => _instance;
+  final String distroName = _getDistroName();
+  Duration uptime = Duration.zero;
+
   // Memory
   double memoryTotal = 1;
   double memoryFree = 1;
@@ -25,12 +33,23 @@ class SystemInfoService {
   double gpuMemoryUsed = 0;
   double gpuMemoryTotal = 0;
 
+  SystemInfoService._internal() {
+    update();
+    Timer.periodic(Duration(seconds: 5), (_) => update());
+  }
+
   /// Update all system info
   Future<void> update() async {
     await _updateMemoryAndSwap();
     await _updateCpuUsage();
     await _updateCpuTemp();
     await _updateGpuUsage();
+    await _getUptime();
+    notifyListeners();
+  }
+
+  static String _getDistroName() {
+    return Process.runSync('lsb_release', ['-i']).stdout.toString().split(":")[1].trim().toLowerCase();
   }
 
   /// Memory and swap from /proc/meminfo
@@ -119,5 +138,11 @@ class SystemInfoService {
     } catch (e) {
       stderr.writeln('GPU usage error: $e');
     }
+  }
+
+  Future<void> _getUptime() async {
+    final uptimeContent = await File('/proc/uptime').readAsString();
+    final seconds = double.parse(uptimeContent.split(' ').first).round();
+    uptime = Duration(seconds: seconds);
   }
 }

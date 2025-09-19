@@ -4,24 +4,27 @@ import 'package:fl_linux_window_manager/models/keyboard_mode.dart';
 import 'package:fl_linux_window_manager/models/screen_edge.dart';
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/data.dart';
+import 'package:hypr_flutter/shell/shell_communication.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class ShellManager {
   static final ShellManager _instance = ShellManager._internal();
   factory ShellManager() => _instance;
-  ShellManager._internal();
 
-  final MethodChannel _sharedChannel = MethodChannel('shell_communication');
+  MethodChannel? _shellCom;
   final List<String> _createdWindows = [];
+
+  ShellManager._internal();
 
   List<String> get createdWindows => List.unmodifiable(_createdWindows);
 
-  void initialize() {
+  Future<void> initialize() async {
+    _shellCom = await ShellCommunication.instance;
     _setupSharedCommunication();
   }
 
   void _setupSharedCommunication() {
-    _sharedChannel.setMethodCallHandler((call) async {
+    _shellCom?.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'window_created':
           _createdWindows.add(call.arguments['windowId']);
@@ -89,6 +92,6 @@ class ShellManager {
   }
 
   void sendMessageToWindow(String windowId, String method, [dynamic args]) {
-    _sharedChannel.invokeMethod(method, {'targetWindow': windowId, 'data': args});
+    _shellCom!.invokeMethod(method, {'targetWindow': windowId, 'data': args});
   }
 }
