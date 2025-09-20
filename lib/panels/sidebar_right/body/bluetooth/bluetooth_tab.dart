@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth_list.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth/bluetooth_list.dart';
 import 'package:hypr_flutter/services/bluetooth.dart';
 
 class BluetoothIcons {}

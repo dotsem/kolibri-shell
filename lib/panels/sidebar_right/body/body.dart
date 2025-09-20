@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth_tab.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/audio/audio_tab.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth/bluetooth_tab.dart';
 import 'package:hypr_flutter/services/bluetooth.dart';
 
 class SidebarRightBody extends StatefulWidget {
@@ -32,7 +33,7 @@ class SidebarRightBodyState extends State<SidebarRightBody> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      Center(child: Text("Tab 1")),
+                      AudioTab(),
                       if (bluetoothService.available) BluetoothTab(bluetoothService: bluetoothService),
 
                       Center(child: Text("Tab 2")),
