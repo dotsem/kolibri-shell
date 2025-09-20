@@ -20,12 +20,20 @@ class NetworkManager extends ChangeNotifier {
   DbusWifi wifi = DbusWifi();
 
   NetworkManager._internal() {
-    Timer.periodic(Duration(seconds: 1), (_) {
-      wifi.getConnectionStatus().then((value) {
-        // print(value);
-        networkModel = NetworkModel(value['status'], value['network'].ssid, value['network'].strength);
-        notifyListeners();
-      });
+    wifi.hasWifiDevice.then((value) {
+      if (value) {
+        Timer.periodic(Duration(seconds: 1), (_) {
+          wifi.getConnectionStatus().then((value) {
+            // print(value);
+            networkModel = NetworkModel(
+              value['status'],
+              value['network'].ssid,
+              value['network'].strength,
+            );
+            notifyListeners();
+          });
+        });
+      }
     });
   }
 }
@@ -42,5 +50,8 @@ class NetworkModel {
     isEthernetActiveConnection().then((value) => ethernet = value);
   }
 
-  NetworkModel.fromJson(Map<String, dynamic> json) : connectionStatus = ConnectionStatus.values[json['status']], ssid = json['SSID'], strength = json['Strength'];
+  NetworkModel.fromJson(Map<String, dynamic> json)
+    : connectionStatus = ConnectionStatus.values[json['status']],
+      ssid = json['SSID'],
+      strength = json['Strength'];
 }

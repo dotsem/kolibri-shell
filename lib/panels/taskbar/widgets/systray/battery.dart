@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
@@ -37,25 +38,36 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
   BatteryState batteryState = BatteryState.unknown;
   IconData batteryIcon = Icons.battery_unknown_rounded;
   Color batteryColor = Colors.white;
+  late bool hasBattery;
 
   @override
   void initState() {
     super.initState();
-    battery.onBatteryStateChanged.listen((event) async => getInternalBatteryState());
 
-    battery.batteryLevel.then((value) {
-      setState(() {
-        batteryLevel = value;
-      });
-      getInternalBatteryState();
-    });
+    Process.run('bash', [
+      '-c',
+      'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0',
+    ]).then((value) {
+      value.stdout.toString().trim() == '1' ? hasBattery = true : hasBattery = false;
 
-    Timer.periodic(const Duration(seconds: 1), (timer) async {
-      batteryLevel = await battery.batteryLevel;
+      if (hasBattery) {
+        battery.onBatteryStateChanged.listen((event) async => getInternalBatteryState());
 
-      setState(() {
-        batteryLevel = batteryLevel;
-      });
+        battery.batteryLevel.then((value) {
+          setState(() {
+            batteryLevel = value;
+          });
+          getInternalBatteryState();
+        });
+
+        Timer.periodic(const Duration(seconds: 1), (timer) async {
+          batteryLevel = await battery.batteryLevel;
+
+          setState(() {
+            batteryLevel = batteryLevel;
+          });
+        });
+      }
     });
   }
 
@@ -107,31 +119,35 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SlideFadeTransition(
-          visible: batteryState == BatteryState.charging,
-          direction: SlideDirection.right,
-          child: Icon(Icons.bolt_rounded, color: batteryColor),
-        ),
-        Text("$batteryLevel%", style: TextStyle(color: batteryColor)),
-
-        SizedBox(
-          height: 40,
-          width: 40,
-          child: CircularPercentIndicator(
-            radius: 15,
-            lineWidth: 2,
-            percent: batteryLevel / 100,
-            center: Icon(batteryIcon, size: 22, color: batteryColor),
-            backgroundColor: batteryColor.withAlpha(100),
-
-            progressBorderColor: batteryColor,
-            progressColor: batteryColor,
+    if (hasBattery) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SlideFadeTransition(
+            visible: batteryState == BatteryState.charging,
+            direction: SlideDirection.right,
+            child: Icon(Icons.bolt_rounded, color: batteryColor),
           ),
-        ),
-      ],
-    );
+          Text("$batteryLevel%", style: TextStyle(color: batteryColor)),
+
+          SizedBox(
+            height: 40,
+            width: 40,
+            child: CircularPercentIndicator(
+              radius: 15,
+              lineWidth: 2,
+              percent: batteryLevel / 100,
+              center: Icon(batteryIcon, size: 22, color: batteryColor),
+              backgroundColor: batteryColor.withAlpha(100),
+
+              progressBorderColor: batteryColor,
+              progressColor: batteryColor,
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Container();
+    }
   }
 }
