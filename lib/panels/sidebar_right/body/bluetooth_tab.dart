@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth_list.dart';
 import 'package:hypr_flutter/services/bluetooth.dart';
 
 class BluetoothIcons {}
@@ -12,19 +13,17 @@ class BluetoothTab extends StatefulWidget {
 }
 
 class _BluetoothTabState extends State<BluetoothTab> {
+  bool isScanning = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    isScanning = widget.bluetoothService.adapter!.discovering;
+  }
+
   @override
   Widget build(BuildContext context) {
-    IconData getBluetoothIcon(String iconName) {
-      switch (iconName) {
-        case "audio-card":
-          return Icons.speaker;
-        case "audio-headset":
-          return Icons.headphones;
-        default:
-          return Icons.device_unknown;
-      }
-    }
-
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -35,16 +34,22 @@ class _BluetoothTabState extends State<BluetoothTab> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(widget.bluetoothService.adapter?.name ?? "unknown"),
-                widget.bluetoothService.adapter!.discovering
+                isScanning
                     ? ElevatedButton(
                         onPressed: () {
-                          widget.bluetoothService.adapter!.stopDiscovery();
+                          setState(() {
+                            widget.bluetoothService.adapter!.stopDiscovery();
+                            isScanning = true;
+                          });
                         },
                         child: Text("Stop scanning"),
                       )
                     : ElevatedButton(
                         onPressed: () {
-                          widget.bluetoothService.adapter!.startDiscovery();
+                          setState(() {
+                            widget.bluetoothService.adapter!.startDiscovery();
+                            isScanning = false;
+                          });
                         },
                         child: Text("Scan"),
                       ),
@@ -52,42 +57,21 @@ class _BluetoothTabState extends State<BluetoothTab> {
             ),
           ),
           Divider(color: Colors.grey[700], endIndent: 8, indent: 8),
-          Expanded(
-            child: ListView.builder(
-              itemBuilder: (_, index) {
-                bool connected = widget.bluetoothService.devices[index].connected;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 4),
-                  child: Row(
+          AnimatedBuilder(
+            animation: widget.bluetoothService,
+            builder: (_, __) {
+              return Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
                     children: [
-                      Padding(padding: const EdgeInsets.only(right: 4), child: Icon(getBluetoothIcon(widget.bluetoothService.devices[index].icon), size: 24)),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [Text(widget.bluetoothService.devices[index].name, style: TextStyle(fontSize: 18))]),
-                          Text(widget.bluetoothService.devices[index].address, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim)),
-                        ],
-                      ),
-                      Spacer(),
-                      connected
-                          ? ElevatedButton(
-                              onPressed: () {
-                                widget.bluetoothService.devices[index].disconnect();
-                              },
-                              child: Text("Disconnect"),
-                            )
-                          : ElevatedButton(
-                              onPressed: () {
-                                widget.bluetoothService.devices[index].connect();
-                              },
-                              child: Text("Connect"),
-                            ),
+                      BluetoothList(itemBuilder: widget.bluetoothService.connectedDevices, title: "Connected"),
+                      BluetoothList(itemBuilder: widget.bluetoothService.trustedDevices, title: "Trusted"),
+                      BluetoothList(itemBuilder: widget.bluetoothService.discoveredDevices, title: "Discovered"),
                     ],
                   ),
-                );
-              },
-              itemCount: widget.bluetoothService.devices.length,
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),

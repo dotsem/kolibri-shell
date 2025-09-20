@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:bluez/bluez.dart';
 import 'package:flutter/foundation.dart';
 
@@ -13,6 +11,9 @@ class BluetoothService extends ChangeNotifier {
 
   BlueZAdapter? adapter;
   List<BlueZDevice> devices = [];
+  List<BlueZDevice> connectedDevices = [];
+  List<BlueZDevice> trustedDevices = [];
+  List<BlueZDevice> discoveredDevices = [];
 
   final bluetoothClient = BlueZClient();
 
@@ -33,6 +34,13 @@ class BluetoothService extends ChangeNotifier {
         adapter = bluetoothClient.adapters.first;
       }
       for (BlueZDevice device in bluetoothClient.devices) {
+        if (device.connected) {
+          connectedDevices.add(device);
+        } else if (device.trusted) {
+          trustedDevices.add(device);
+        } else {
+          discoveredDevices.add(device);
+        }
         devices.add(device);
         if (device.connected) {
           _connected = true;
