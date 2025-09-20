@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/audio/sink_controller.dart';
 import 'package:pulseaudio/pulseaudio.dart';
 
 class AudioTab extends StatefulWidget {
@@ -9,23 +10,37 @@ class AudioTab extends StatefulWidget {
 }
 
 class _AudioTabState extends State<AudioTab> {
+  List<PulseAudioSink> sinks = [];
+  final client = PulseAudioClient();
   @override
   void initState() {
     super.initState();
 
-    final client = PulseAudioClient();
     client.initialize().then((_) {
       client.getSinkList().then((sinkList) {
-        print('\nAvailable Sinks:');
-        for (var sink in sinkList) {
-          print('Sink Name: ${sink.name}, Description: ${sink.description}');
-        }
+        setState(() {
+          sinks = sinkList;
+        });
+      });
+    });
+
+    client.onSinkChanged.listen((event) {
+      client.getSinkList().then((sinkList) {
+        setState(() {
+          sinks = sinkList;
+        });
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Text("tab audio");
+    return Expanded(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [SinkController(sinks: sinks, client: client)],
+        ),
+      ),
+    );
   }
 }

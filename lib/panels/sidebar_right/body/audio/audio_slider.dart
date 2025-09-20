@@ -9,7 +9,8 @@ class AudioSlider extends StatelessWidget {
   final bool muted;
   final OnMuteCallback onMute;
   final String identifier;
-  const AudioSlider({super.key, required this.value, required this.onVolumeChange, required this.muted, required this.onMute, required this.identifier});
+  final String title;
+  const AudioSlider({super.key, required this.value, required this.onVolumeChange, required this.muted, required this.onMute, required this.identifier, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +22,16 @@ class AudioSlider extends StatelessWidget {
           },
           icon: Icon(muted ? Icons.volume_off : Icons.volume_up),
         ),
-        Slider(
-          value: value,
-          onChanged: (value) {
-            onVolumeChange(value);
-          },
+        Column(
+          children: [
+            Text(title),
+            Slider(
+              value: value,
+              onChanged: (value) {
+                onVolumeChange(value);
+              },
+            ),
+          ],
         ),
         Radio(value: identifier),
       ],
