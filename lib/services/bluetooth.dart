@@ -21,32 +21,38 @@ class BluetoothService extends ChangeNotifier {
 
   BluetoothService._internal() {
     print("Initializing bluetooth service");
-    bluetoothClient.connect().then((_) {
-      if (bluetoothClient.adapters.isEmpty) {
-        available = false;
-        return;
-      } else {
-        if (bluetoothClient.adapters.length > 1 && kDebugMode) {
-          // ignore: avoid_print because hablaboblo
-          print("Multiple adapters found: ${bluetoothClient.adapters.length}, taking the first one");
-        }
-        available = true;
-        adapter = bluetoothClient.adapters.first;
-      }
-      for (BlueZDevice device in bluetoothClient.devices) {
-        if (device.connected) {
-          connectedDevices.add(device);
-        } else if (device.trusted) {
-          trustedDevices.add(device);
+    try {
+      bluetoothClient.connect().then((_) {
+        if (bluetoothClient.adapters.isEmpty) {
+          available = false;
+          return;
         } else {
-          discoveredDevices.add(device);
+          if (bluetoothClient.adapters.length > 1 && kDebugMode) {
+            // ignore: avoid_print because hablaboblo
+            print(
+              "Multiple adapters found: ${bluetoothClient.adapters.length}, taking the first one",
+            );
+          }
+          available = true;
+          adapter = bluetoothClient.adapters.first;
         }
-        devices.add(device);
-        if (device.connected) {
-          _connected = true;
+        for (BlueZDevice device in bluetoothClient.devices) {
+          if (device.connected) {
+            connectedDevices.add(device);
+          } else if (device.trusted) {
+            trustedDevices.add(device);
+          } else {
+            discoveredDevices.add(device);
+          }
+          devices.add(device);
+          if (device.connected) {
+            _connected = true;
+          }
         }
-      }
-      notifyListeners();
-    });
+        notifyListeners();
+      });
+    } catch (e) {
+      available = false;
+    }
   }
 }

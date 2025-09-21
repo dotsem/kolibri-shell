@@ -12,11 +12,36 @@ class SinkController extends StatefulWidget {
 }
 
 class _SinkControllerState extends State<SinkController> {
+  String defaultSink = "";
+
+  @override
+  void initState() {
+    super.initState();
+    widget.client.getServerInfo().then((info) {
+      setState(() {
+        defaultSink = info.defaultSinkName;
+      });
+    });
+
+    widget.client.onServerInfoChanged.listen((event) {
+      setState(() {
+        defaultSink = event.defaultSinkName;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return RadioGroup(
-      groupValue: null,
-      onChanged: (value) {},
+      groupValue: defaultSink,
+      onChanged: (value) {
+        setState(() {
+          if (value != null) {
+            defaultSink = value;
+            widget.client.setDefaultSink(value);
+          }
+        });
+      },
       child: ListView.builder(
         shrinkWrap: true,
         physics: NeverScrollableScrollPhysics(),

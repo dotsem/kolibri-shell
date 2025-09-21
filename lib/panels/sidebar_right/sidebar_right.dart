@@ -16,7 +16,7 @@ class RightSidebarWidget extends StatelessWidget {
       home: Scaffold(
         backgroundColor: Colors.transparent,
         body: Container(
-          width: 400,
+          width: 500,
           decoration: BoxDecoration(
             color: Colors.grey[900]!.withOpacity(0.95),
             border: Border(left: BorderSide(color: Colors.grey[700]!, width: 1)),

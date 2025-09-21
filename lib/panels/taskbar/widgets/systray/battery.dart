@@ -38,7 +38,7 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
   BatteryState batteryState = BatteryState.unknown;
   IconData batteryIcon = Icons.battery_unknown_rounded;
   Color batteryColor = Colors.white;
-  late bool hasBattery;
+  bool hasBattery = false;
 
   @override
   void initState() {
@@ -48,7 +48,9 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
       '-c',
       'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0',
     ]).then((value) {
-      value.stdout.toString().trim() == '1' ? hasBattery = true : hasBattery = false;
+      setState(() {
+        value.stdout.toString().trim() == '1' ? hasBattery = true : hasBattery = false;
+      });
 
       if (hasBattery) {
         battery.onBatteryStateChanged.listen((event) async => getInternalBatteryState());
