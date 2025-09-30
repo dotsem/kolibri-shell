@@ -2,30 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/sidebar_right/body/audio/audio_slider.dart';
 import 'package:pulseaudio/pulseaudio.dart';
 
-class SinkController extends StatefulWidget {
-  final List<PulseAudioSink> sinks;
+class SourceController extends StatefulWidget {
+  final List<PulseAudioSource> sources;
   final PulseAudioClient client;
-  const SinkController({super.key, required this.sinks, required this.client});
+  const SourceController({super.key, required this.sources, required this.client});
 
   @override
-  State<SinkController> createState() => _SinkControllerState();
+  State<SourceController> createState() => _SourceControllerState();
 }
 
-class _SinkControllerState extends State<SinkController> {
-  String defaultSink = "";
+class _SourceControllerState extends State<SourceController> {
+  String defaultSource = "";
 
   @override
   void initState() {
     super.initState();
     widget.client.getServerInfo().then((info) {
       setState(() {
-        defaultSink = info.defaultSinkName;
+        defaultSource = info.defaultSourceName;
       });
     });
 
     widget.client.onServerInfoChanged.listen((event) {
       setState(() {
-        defaultSink = event.defaultSinkName;
+        defaultSource = event.defaultSourceName;
       });
     });
   }
@@ -33,38 +33,38 @@ class _SinkControllerState extends State<SinkController> {
   @override
   Widget build(BuildContext context) {
     return RadioGroup(
-      groupValue: defaultSink,
+      groupValue: defaultSource,
       onChanged: (value) {
         setState(() {
           if (value != null) {
-            defaultSink = value;
-            widget.client.setDefaultSink(value);
+            defaultSource = value;
+            widget.client.setDefaultSource(value);
           }
         });
       },
       child: ListView.builder(
         shrinkWrap: true,
         physics: NeverScrollableScrollPhysics(),
-        itemCount: widget.sinks.length,
+        itemCount: widget.sources.length,
         itemBuilder: (context, index) {
-          PulseAudioSink sink = widget.sinks[index];
+          PulseAudioSource source = widget.sources[index];
           return AudioSlider(
-            value: sink.volume,
+            value: source.volume,
             onVolumeChange: (volume) {
               setState(() {
-                widget.client.setSinkVolume(sink.name, volume);
+                widget.client.setSourceVolume(source.name, volume);
               });
             },
-            muted: sink.mute,
+            muted: source.mute,
             onMute: (muted) {
               setState(() {
-                widget.client.setSinkMute(sink.name, muted);
+                widget.client.setSourceMute(source.name, muted);
               });
             },
-            identifier: sink.name,
-            title: sink.description,
-            icon: Icons.volume_up,
-            iconMuted: Icons.volume_off,
+            identifier: source.name,
+            title: source.description,
+            icon: Icons.mic,
+            iconMuted: Icons.mic_off,
           );
         },
       ),

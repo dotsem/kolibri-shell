@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/sidebar_right/body/audio/audio_slider.dart';
 import 'package:hypr_flutter/panels/sidebar_right/body/audio/sink_controller.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/audio/source_controller.dart';
 import 'package:pulseaudio/pulseaudio.dart';
 
 class AudioTab extends StatefulWidget {
@@ -13,6 +14,7 @@ class AudioTab extends StatefulWidget {
 class _AudioTabState extends State<AudioTab> {
   bool initialized = false;
   List<PulseAudioSink> sinks = [];
+  List<PulseAudioSource> sources = [];
   final client = PulseAudioClient();
   @override
   void initState() {
@@ -23,12 +25,25 @@ class _AudioTabState extends State<AudioTab> {
         setState(() {
           sinks = sinkList;
           initialized = true;
+        });
+      });
+      client.getSourceList().then((sourceList) {
+        for (PulseAudioSource source in sourceList) {
+          if (source.name.split(".")[0] == "alsa_input") {
+            sources.add(source);
+          }
+        }
+      });
+    });
 
-          client.getSourceList().then((sourceList) {
-            for (PulseAudioSource source in sourceList) {
-              print("bub source: ${source.name} ${source.description}");
+    client.onSourceChanged.listen((event) {
+      client.getSourceList().then((sourceList) {
+        setState(() {
+          for (PulseAudioSource source in sourceList) {
+            if (source.name.split(".")[0] == "alsa_input") {
+              sources.add(source);
             }
-          });
+          }
         });
       });
     });
@@ -67,10 +82,7 @@ class _AudioTabState extends State<AudioTab> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.apps),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Text("Apps"),
-                                  ),
+                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Apps")),
                                 ],
                               ),
                             ),
@@ -79,10 +91,7 @@ class _AudioTabState extends State<AudioTab> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.speaker_group_rounded),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Text("Outputs"),
-                                  ),
+                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Outputs")),
                                 ],
                               ),
                             ),
@@ -91,10 +100,7 @@ class _AudioTabState extends State<AudioTab> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.settings_input_component),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Text("Inputs"),
-                                  ),
+                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Inputs")),
                                 ],
                               ),
                             ),
@@ -105,7 +111,7 @@ class _AudioTabState extends State<AudioTab> {
                             children: [
                               Center(child: Text("tab 1")),
                               SinkController(sinks: sinks, client: client),
-                              Center(child: Text("tab 3")),
+                              SourceController(sources: sources, client: client),
                             ],
                           ),
                         ),
