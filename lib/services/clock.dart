@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ClockService extends ChangeNotifier {
@@ -6,12 +7,29 @@ class ClockService extends ChangeNotifier {
 
   factory ClockService() => _instance;
 
+  bool _isInitialized = false;
+  Timer? _timer;
+
   ClockService._internal() {
-    // Start the timer
-    print("clock started");
-    Timer.periodic(Duration(milliseconds: 200), (_) {
-      _taskbarClock = TaskbarClock.getClock();
-      notifyListeners();
+    print("ClockService created in isolate (PID: $pid)");
+  }
+
+  /// Initialize the clock service (each isolate runs its own timer)
+  void initialize() {
+    if (_isInitialized) return;
+    
+    _isInitialized = true;
+    print("ClockService: Starting timer in this isolate");
+    
+    // Each isolate runs its own timer - this is fine for clock
+    // For heavy services (Bluetooth, WiFi), use longer intervals or event-based updates
+    _timer = Timer.periodic(Duration(seconds: 1), (_) {
+      final newClock = TaskbarClock.getClock();
+      
+      if (newClock.time != _taskbarClock.time || newClock.date != _taskbarClock.date) {
+        _taskbarClock = newClock;
+        notifyListeners();
+      }
     });
   }
 

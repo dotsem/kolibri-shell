@@ -35,6 +35,7 @@ class BatteryIndicator extends StatefulWidget {
 class _BatteryIndicatorState extends State<BatteryIndicator> {
   Battery battery = Battery();
   int batteryLevel = 0;
+  int previousBatteryLevel = 0;
   BatteryState batteryState = BatteryState.unknown;
   IconData batteryIcon = Icons.battery_unknown_rounded;
   Color batteryColor = Colors.white;
@@ -44,10 +45,7 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
   void initState() {
     super.initState();
 
-    Process.run('bash', [
-      '-c',
-      'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0',
-    ]).then((value) {
+    Process.run('bash', ['-c', 'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0']).then((value) {
       setState(() {
         value.stdout.toString().trim() == '1' ? hasBattery = true : hasBattery = false;
       });
@@ -67,6 +65,10 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
 
           setState(() {
             batteryLevel = batteryLevel;
+            if (batteryLevel != previousBatteryLevel) {
+              previousBatteryLevel = batteryLevel;
+              getInternalBatteryState();
+            }
           });
         });
       }
@@ -75,11 +77,9 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
 
   void getInternalBatteryState() async {
     batteryState = await battery.batteryState;
-    print(batteryState.toString());
 
     setState(() {
       BatteryStateEnhanced batteryStateEnhanced = getBatteryState();
-      print(batteryStateEnhanced.toString());
       batteryIcon = batteryStateEnhanced.icon;
       batteryColor = batteryStateEnhanced.color;
     });
@@ -88,23 +88,23 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
   BatteryStateEnhanced getBatteryState() {
     if (batteryState == BatteryState.discharging) {
       switch (batteryLevel) {
-        case < 5:
+        case <= 5:
           return BatteryStateEnhanced.critical;
-        case < 10:
+        case <= 10:
           return BatteryStateEnhanced.low;
-        case < 20:
+        case <= 20:
           return BatteryStateEnhanced.s1;
-        case < 30:
+        case <= 30:
           return BatteryStateEnhanced.s2;
-        case < 45:
+        case <= 45:
           return BatteryStateEnhanced.s3;
-        case < 60:
+        case <= 60:
           return BatteryStateEnhanced.s4;
-        case < 75:
+        case <= 75:
           return BatteryStateEnhanced.s5;
-        case < 85:
+        case <= 85:
           return BatteryStateEnhanced.s6;
-        case > 95:
+        case >= 95:
           return BatteryStateEnhanced.full;
         default:
           return BatteryStateEnhanced.s6;

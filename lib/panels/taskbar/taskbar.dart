@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hypr_flutter/config/theme/color/dark.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/center/active_window.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/music/music.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/systray.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/workspaces/workspaces.dart';
 
@@ -41,6 +42,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                   taskbarId: widget.windowId,
                 ),
                 Workspaces(monitorIndex: widget.monitorIndex),
+                MusicPanel(),
                 Spacer(),
                 ActiveWindow(),
                 Spacer(),

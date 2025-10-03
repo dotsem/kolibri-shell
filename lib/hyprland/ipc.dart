@@ -128,7 +128,7 @@ class HyprlandIpcManager {
   /// Parse incoming event data
   void _parseEvent(String data) {
     try {
-      print("this is the data: $data");
+      // print("hyprland event: $data");
 
       // Format: "eventType>>data,data,data"
       final parts = data.split('>>');
@@ -140,7 +140,7 @@ class HyprlandIpcManager {
       // Map to enum
       final eventType = _stringToEventType(eventName);
       if (eventType == HyprlandEventType.unknown) {
-        print('⚠️  Unknown event type: $eventName');
+        // print('⚠️  Unknown event type: $eventName');
         return;
       }
 

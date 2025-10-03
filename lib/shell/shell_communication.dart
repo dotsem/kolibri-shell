@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 class ShellCommunication {
   static MethodChannel? _channel;
 
-  static Future<MethodChannel> get instance async {
+  static Future<MethodChannel> instance({required String shareWithWindowId, required String windowId}) async {
     if (_channel == null) {
-      // Create the shared channel only once
-      await FlLinuxWindowManager.instance.createSharedMethodChannel(channelName: "shell_communication", shareWithWindowId: "main", windowId: "main");
+      print("Creating shell communication channel with: $shareWithWindowId | $windowId");
+      await FlLinuxWindowManager.instance.createSharedMethodChannel(channelName: "shell_communication", shareWithWindowId: shareWithWindowId, windowId: windowId);
 
-      _channel = const MethodChannel('shell_communication');
+      _channel = const MethodChannel("shell_communication");
     }
     return _channel!;
   }

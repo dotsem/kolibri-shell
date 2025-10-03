@@ -10,7 +10,6 @@ import 'package:hypr_flutter/shell/shell_router.dart';
 import 'package:hypr_flutter/window_ids.dart';
 // import 'package:pipewire_song_info/pipewire_song_info.dart';
 
-
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   // Store args for later use
@@ -24,21 +23,29 @@ void main(List<String> args) async {
   // }
 
   // config for taskbar on window 0 (default)
-  FlLinuxWindowManager.instance.setLayer(WindowLayer.top);
-  FlLinuxWindowManager.instance.setSize(width: 1920, height: 50);
-  FlLinuxWindowManager.instance.setTitle(title: "Taskbar-0");
-  WindowIds.taskbars.add("main");
-  FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none);
-  FlLinuxWindowManager.instance.enableLayerAutoExclusive();
+  if (args.isEmpty) {
+    FlLinuxWindowManager.instance.setLayer(WindowLayer.top);
+    FlLinuxWindowManager.instance.setSize(width: 1920, height: 50);
+    FlLinuxWindowManager.instance.setTitle(title: "Taskbar-0");
+    WindowIds.taskbars.add("main");
+    FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none);
+    FlLinuxWindowManager.instance.enableLayerAutoExclusive();
 
-  FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
-  FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
+    FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
+    FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
+  }
 
-  runApp(const HyprlandShellApp());
+  print("args: $args");
+  if (args.isEmpty) {
+    runApp(HyprlandShellApp(windowId: "main"));
+  } else {
+    runApp(HyprlandShellApp(windowId: args[1].split("=")[1]));
+  }
 }
 
 class HyprlandShellApp extends StatefulWidget {
-  const HyprlandShellApp({super.key});
+  final String windowId;
+  const HyprlandShellApp({super.key, required this.windowId});
 
   @override
   State<HyprlandShellApp> createState() => _HyprlandShellAppState();
@@ -51,14 +58,19 @@ class _HyprlandShellAppState extends State<HyprlandShellApp> {
   void initState() {
     super.initState();
     _shellManager = ShellManager();
-    _shellManager.initialize();
+    
+    // Main window (no args or windowId == "main") is the controller
+    final isMainWindow = widget.windowId == "main";
+    _shellManager.initialize(isMainWindow: isMainWindow);
 
-    // Create additional windows after a short delay
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(Duration(milliseconds: 500), () {
-        _shellManager.createShellWindows();
+    // Only main window creates additional windows
+    if (isMainWindow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          _shellManager.createShellWindows();
+        });
       });
-    });
+    }
   }
 
   @override

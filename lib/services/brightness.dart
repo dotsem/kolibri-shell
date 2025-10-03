@@ -1,8 +1,26 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /// For managing brightness of monitors. Supports both brightnessctl and ddcutil.
-class BrightnessService {
+class BrightnessService extends ChangeNotifier {
+  static final BrightnessService _instance = BrightnessService._internal();
+  factory BrightnessService() => _instance;
+  
   List<Map<String, String>> ddcMonitors = [];
+  List<BrightnessMonitor> monitors = [];
+  
+  BrightnessService._internal() {
+    _initialize();
+  }
+  
+  Future<void> _initialize() async {
+    await detectDdcMonitors();
+    monitors = createMonitors();
+    for (final monitor in monitors) {
+      await monitor.initialize();
+    }
+    notifyListeners();
+  }
 
   /// Detect monitors via ddcutil
   Future<void> detectDdcMonitors() async {
@@ -66,7 +84,7 @@ class BrightnessMonitor {
   }
 
   /// Set brightness (0.01–1.0)
-  Future<void> setBrightness(double value) async {
+  Future<void> setBrightness(double value, {VoidCallback? onChanged}) async {
     value = value.clamp(0.01, 1.0);
     final rounded = (value * 100).round();
     if ((brightness * 100).round() == rounded) return;
@@ -79,6 +97,7 @@ class BrightnessMonitor {
       } else {
         await Process.run('brightnessctl', ['s', '$rounded%', '--quiet']);
       }
+      onChanged?.call();
     } catch (e) {
       stderr.writeln('set brightness error: $e');
     }
