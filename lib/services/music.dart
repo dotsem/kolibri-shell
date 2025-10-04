@@ -22,11 +22,13 @@ class MusicService extends ChangeNotifier {
   Future<void> _initialize() async {
     try {
       _dbusClient = DBusClient.session();
-      
+
       // List all MPRIS players
       final names = await _dbusClient!.listNames();
-      final mprisPlayers = names.where((name) => name.startsWith('org.mpris.MediaPlayer2.')).toList();
-      
+      final mprisPlayers = names
+          .where((name) => name.startsWith('org.mpris.MediaPlayer2.'))
+          .toList();
+
       if (mprisPlayers.isNotEmpty) {
         // Use the first available player or find spotify
         final spotifyPlayer = mprisPlayers.firstWhere(
@@ -34,7 +36,7 @@ class MusicService extends ChangeNotifier {
           orElse: () => mprisPlayers.first,
         );
         currentPlayer = spotifyPlayer.split('.').last;
-        
+
         print('Found MPRIS player: $currentPlayer');
         await _connectToPlayer(spotifyPlayer);
       }
@@ -46,7 +48,7 @@ class MusicService extends ChangeNotifier {
   Future<void> _connectToPlayer(String destination) async {
     final path = DBusObjectPath('/org/mpris/MediaPlayer2');
     _playerObject = DBusRemoteObject(_dbusClient!, name: destination, path: path);
-    
+
     // Listen to property changes
     _propertiesSubscription = _playerObject!.propertiesChanged.listen((signal) {
       if (signal.propertiesInterface == 'org.mpris.MediaPlayer2.Player') {
@@ -54,14 +56,14 @@ class MusicService extends ChangeNotifier {
         getPlayerData();
       }
     });
-    
+
     // Listen to Seeked signal for instant position updates
     final seekedSignals = DBusRemoteObjectSignalStream(
       object: _playerObject!,
       interface: 'org.mpris.MediaPlayer2.Player',
       name: 'Seeked',
     );
-    
+
     _seekedSubscription = seekedSignals.listen((signal) {
       if (signal.values.isNotEmpty && signal.values[0] is DBusInt64) {
         final newPositionMicros = (signal.values[0] as DBusInt64).value;
@@ -73,7 +75,7 @@ class MusicService extends ChangeNotifier {
         print('🎯 Seeked signal received! New position: $_currentPosition seconds');
       }
     });
-    
+
     await getPlayerData();
     print('Connected to player: $destination');
   }
@@ -97,14 +99,14 @@ class MusicService extends ChangeNotifier {
       // Parse metadata
       final metadataMap = (metadata as DBusDict).children;
       print('Metadata map keys: ${metadataMap.keys.map((k) => (k as DBusString).value).toList()}');
-      
+
       final title = _getMetadataString(metadataMap, 'xesam:title');
       final artists = _getMetadataStringArray(metadataMap, 'xesam:artist');
       final album = _getMetadataString(metadataMap, 'xesam:album');
       final trackId = _getMetadataString(metadataMap, 'mpris:trackid');
       final artUrl = _getMetadataString(metadataMap, 'mpris:artUrl');
       final lengthMicros = _getMetadataInt(metadataMap, 'mpris:length');
-      
+
       print('Parsed: title=$title, artist=${artists.isNotEmpty ? artists.first : "Unknown"}');
 
       final isPlaying = (playbackStatus as DBusString).value == 'Playing';
@@ -143,7 +145,7 @@ class MusicService extends ChangeNotifier {
   String _getMetadataString(Map<DBusValue, DBusValue> metadata, String key) {
     final value = metadata[DBusString(key)];
     if (value == null) return '';
-    
+
     // Unwrap variant if needed
     final unwrapped = value is DBusVariant ? value.value : value;
     if (unwrapped is DBusString) return unwrapped.value;
@@ -154,7 +156,7 @@ class MusicService extends ChangeNotifier {
   List<String> _getMetadataStringArray(Map<DBusValue, DBusValue> metadata, String key) {
     final value = metadata[DBusString(key)];
     if (value == null) return [];
-    
+
     // Unwrap variant if needed
     final unwrapped = value is DBusVariant ? value.value : value;
     if (unwrapped is DBusArray) {
@@ -167,7 +169,7 @@ class MusicService extends ChangeNotifier {
   int _getMetadataInt(Map<DBusValue, DBusValue> metadata, String key) {
     final value = metadata[DBusString(key)];
     if (value == null) return 0;
-    
+
     // Unwrap variant if needed
     final unwrapped = value is DBusVariant ? value.value : value;
     if (unwrapped is DBusInt64) return unwrapped.value;
@@ -198,6 +200,29 @@ class MusicService extends ChangeNotifier {
           }
         }
       });
+    }
+  }
+
+  Future<void> seek(double seconds) async {
+    if (_playerObject == null) {
+      print('Cannot seek: player object is null');
+      return;
+    }
+
+    if (playerData == null) {
+      print('Cannot seek: player data is unavailable');
+      return;
+    }
+
+    final targetSeconds = seconds.clamp(0, playerData!.length.toDouble()).round();
+
+    try {
+      await playerData!.setPosition(targetSeconds);
+      _currentPosition = targetSeconds;
+      playerData!.position = targetSeconds;
+      notifyListeners();
+    } catch (e) {
+      print('Failed to seek: $e');
     }
   }
 
@@ -243,7 +268,7 @@ class MusicPlayer {
     print("   Playing: $isPlaying");
     print("   Position: $position / $length seconds");
     if (artUrl.isNotEmpty) {
-      art = CachedNetworkImageProvider(artUrl, maxWidth: 128, maxHeight: 128);
+      art = CachedNetworkImageProvider(artUrl, maxWidth: 256, maxHeight: 256);
     }
   }
 
@@ -292,12 +317,19 @@ class MusicPlayer {
 
   Future<void> setPosition(int positionSeconds) async {
     try {
-      await _playerObject.callMethod(
-        'org.mpris.MediaPlayer2.Player',
-        'SetPosition',
-        [DBusObjectPath(trackId), DBusInt64(positionSeconds * 1000000)],
-        replySignature: DBusSignature(''),
-      );
+      if (trackId.isEmpty) {
+        print('Cannot set position: trackId is empty');
+        return;
+      }
+
+      final clampedPosition = positionSeconds.clamp(0, length).toInt();
+
+      await _playerObject.callMethod('org.mpris.MediaPlayer2.Player', 'SetPosition', [
+        DBusObjectPath(trackId),
+        DBusInt64(clampedPosition * 1000000),
+      ], replySignature: DBusSignature(''));
+
+      position = clampedPosition;
     } catch (e) {
       print('Failed to set position: $e');
     }

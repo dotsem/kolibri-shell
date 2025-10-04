@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/services/music.dart';
 
+typedef MusicInfoCallback = void Function(double value);
+
 class MusicControls extends StatelessWidget {
   final VoidCallback updatePlayerData;
   final MusicPlayer playerData;
-  const MusicControls({super.key, required this.playerData, required this.updatePlayerData});
+  final MusicInfoCallback positionChanged;
+  const MusicControls({
+    super.key,
+    required this.playerData,
+    required this.updatePlayerData,
+    required this.positionChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +69,13 @@ class MusicControls extends StatelessWidget {
                 overlayShape: SliderComponentShape.noOverlay,
                 activeTrackColor: SliderTheme.of(context).activeTrackColor,
                 inactiveTrackColor: SliderTheme.of(context).inactiveTrackColor,
-                trackShape: const RectangularSliderTrackShape(),
+                trackShape: const RoundedRectSliderTrackShape(),
               ),
-              child: Slider(value: playerData.position.toDouble().clamp(0, playerData.length.toDouble()), max: playerData.length.toDouble(), onChanged: (value) {}),
+              child: Slider(
+                value: playerData.position.toDouble().clamp(0, playerData.length.toDouble()),
+                max: playerData.length.toDouble(),
+                onChanged: positionChanged,
+              ),
             ),
           ],
         ),

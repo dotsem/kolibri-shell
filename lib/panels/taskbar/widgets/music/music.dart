@@ -34,14 +34,20 @@ class _MusicPanelState extends State<MusicPanel> {
   Future<void> _extractDominantColor(ImageProvider imageProvider) async {
     if (lastProcessedImage == imageProvider) return;
 
-    final paletteGenerator = await PaletteGenerator.fromImageProvider(imageProvider, maximumColorCount: 10);
+    final paletteGenerator = await PaletteGenerator.fromImageProvider(
+      imageProvider,
+      maximumColorCount: 10,
+    );
 
     // Get dominant color, excluding black/very dark colors
     Color? selectedColor = paletteGenerator.dominantColor?.color;
 
     // If dominant color is too dark, try vibrant or muted colors
     if (selectedColor != null && selectedColor.computeLuminance() < 0.1) {
-      selectedColor = paletteGenerator.vibrantColor?.color ?? paletteGenerator.mutedColor?.color ?? selectedColor;
+      selectedColor =
+          paletteGenerator.vibrantColor?.color ??
+          paletteGenerator.mutedColor?.color ??
+          selectedColor;
     }
 
     if (mounted) {
@@ -83,7 +89,9 @@ class _MusicPanelState extends State<MusicPanel> {
             },
             child: GestureDetector(
               onTap: () async {
-                if (await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.musicPlayer)) {
+                if (await FlLinuxWindowManager.instance.isVisible(
+                  windowId: WindowIds.musicPlayer,
+                )) {
                   musicPlayerPanelVisible = false;
                   await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.musicPlayer);
                 } else {
@@ -101,7 +109,7 @@ class _MusicPanelState extends State<MusicPanel> {
                       if (playerData.art != null)
                         Positioned.fill(
                           child: ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                            imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                             child: Image(image: playerData.art!, fit: BoxFit.cover),
                           ),
                         ),
@@ -110,20 +118,48 @@ class _MusicPanelState extends State<MusicPanel> {
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [dominantColor!.withValues(alpha: 0.2), dominantColor!.withValues(alpha: 0.2)]),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  dominantColor!.withValues(alpha: 0.2),
+                                  dominantColor!.withValues(alpha: 0.2),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       Theme(
                         data: Theme.of(context).copyWith(
-                          textTheme: contrastColor != null ? Theme.of(context).textTheme.apply(bodyColor: contrastColor, displayColor: contrastColor) : Theme.of(context).textTheme,
-                          sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: contrastColor, inactiveTrackColor: contrastColor!.withOpacity(0.3)) : Theme.of(context).sliderTheme,
+                          textTheme: contrastColor != null
+                              ? Theme.of(context).textTheme.apply(
+                                  bodyColor: contrastColor,
+                                  displayColor: contrastColor,
+                                )
+                              : Theme.of(context).textTheme,
+                          sliderTheme: contrastColor != null
+                              ? SliderThemeData(
+                                  activeTrackColor: contrastColor,
+                                  inactiveTrackColor: contrastColor!.withOpacity(0.3),
+                                )
+                              : Theme.of(context).sliderTheme,
                         ),
                         child: Row(
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: playerData.art != null ? Image(image: playerData.art!, width: 48, height: 48, fit: BoxFit.cover) : Container(width: 48, height: 48, color: Theme.of(context).colorScheme.surface, child: Icon(Icons.album)),
+                              child: playerData.art != null
+                                  ? Image(
+                                      image: playerData.art!,
+                                      width: 48,
+                                      height: 48,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      width: 48,
+                                      height: 48,
+                                      color: Theme.of(context).colorScheme.surface,
+                                    ),
                             ),
                             hovered
                                 ? MusicControls(
@@ -133,8 +169,16 @@ class _MusicPanelState extends State<MusicPanel> {
                                       // But we can manually trigger an update for immediate feedback
                                       musicService.getPlayerData();
                                     },
+                                    positionChanged: (value) {
+                                      musicService.seek(value);
+                                    },
                                   )
-                                : MusicInfo(playerData: playerData),
+                                : MusicInfo(
+                                    playerData: playerData,
+                                    onSeek: (value) {
+                                      musicService.seek(value);
+                                    },
+                                  ),
                           ],
                         ),
                       ),

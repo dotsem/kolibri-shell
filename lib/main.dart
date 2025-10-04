@@ -30,8 +30,11 @@ void main(List<String> args) async {
     WindowIds.taskbars.add("main");
     FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none);
     FlLinuxWindowManager.instance.enableLayerAutoExclusive();
+    FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false);
 
-    FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
+    FlLinuxWindowManager.instance.setLayerAnchor(
+      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
+    );
     FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
   }
 
@@ -58,7 +61,7 @@ class _HyprlandShellAppState extends State<HyprlandShellApp> {
   void initState() {
     super.initState();
     _shellManager = ShellManager();
-    
+
     // Main window (no args or windowId == "main") is the controller
     final isMainWindow = widget.windowId == "main";
     _shellManager.initialize(isMainWindow: isMainWindow);
