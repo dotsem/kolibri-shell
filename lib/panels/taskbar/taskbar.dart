@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/config/theme/color/dark.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
+import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/center/active_window.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/systray.dart';
@@ -23,6 +27,31 @@ class TaskbarWidget extends StatefulWidget {
 class _TaskbarWidgetState extends State<TaskbarWidget> {
   final ShellManager _shellManager = ShellManager();
 
+  final GlobalKey musicPlayerKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.microtask(() async {
+        while (true) {
+          final context = musicPlayerKey.currentContext;
+          final windowUsed = await FlLinuxWindowManager.instance.isWindowIdUsed(WindowIds.musicPlayer);
+
+          if (context != null && windowUsed) {
+            final box = context.findRenderObject() as RenderBox;
+            final position = box.localToGlobal(Offset.zero);
+            FlLinuxWindowManager.instance.setLayerMargin(left: position.dx.toInt(), windowId: WindowIds.musicPlayer);
+            break;
+          }
+
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return InputRegion.negative(
@@ -34,24 +63,42 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
           body: Container(
             height: 48,
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface),
-            child: Row(
+            child: Stack(
+              alignment: AlignmentGeometry.center,
               children: [
-                SidebarToggleButton(
-                  icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
-                  sidebarId: WindowIds.leftSidebar,
-                  taskbarId: widget.windowId,
+                Positioned(
+                  left: 0,
+                  child: Row(
+                    children: [
+                      SidebarToggleButton(
+                        icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
+                        sidebarId: WindowIds.leftSidebar,
+                        taskbarId: widget.windowId,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, right: 8),
+                        child: Workspaces(monitorIndex: widget.monitorIndex),
+                      ),
+                      MusicPanel(key: musicPlayerKey),
+                    ],
+                  ),
                 ),
-                Workspaces(monitorIndex: widget.monitorIndex),
-                MusicPanel(),
-                Spacer(),
-                ActiveWindow(),
-                Spacer(),
-                _buildAppLauncher(),
-                SystemTrayWidget(),
-                SidebarToggleButton(
-                  icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
-                  sidebarId: WindowIds.rightSidebar,
-                  taskbarId: widget.windowId,
+
+                Align(alignment: Alignment.center, child: ActiveWindow()),
+
+                Positioned(
+                  right: 0,
+                  child: Row(
+                    children: [
+                      _buildAppLauncher(),
+                      SystemTrayWidget(),
+                      SidebarToggleButton(
+                        icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
+                        sidebarId: WindowIds.rightSidebar,
+                        taskbarId: widget.windowId,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

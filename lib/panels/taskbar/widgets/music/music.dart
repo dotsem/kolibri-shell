@@ -1,9 +1,11 @@
 import 'dart:ui';
+import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music_info.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music_controls.dart';
 import 'package:hypr_flutter/services/music.dart';
+import 'package:hypr_flutter/window_ids.dart';
 import 'package:palette_generator/palette_generator.dart';
 
 class MusicPanel extends StatefulWidget {
@@ -20,6 +22,7 @@ class _MusicPanelState extends State<MusicPanel> {
   Color? dominantColor;
   Color? contrastColor;
   ImageProvider? lastProcessedImage;
+  bool musicPlayerPanelVisible = false;
 
   Color _getContrastColor(Color backgroundColor) {
     // Calculate relative luminance
@@ -78,54 +81,65 @@ class _MusicPanelState extends State<MusicPanel> {
                 hovered = false;
               });
             },
-            child: SizedBox(
-              width: 250,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    // Blurred background
-                    if (playerData.art != null)
-                      Positioned.fill(
-                        child: ImageFiltered(
-                          imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Image(image: playerData.art!, fit: BoxFit.cover),
-                        ),
-                      ),
-                    // Dominant color overlay mixed with blurred image
-                    if (dominantColor != null)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [dominantColor!.withValues(alpha: 0.2), dominantColor!.withValues(alpha: 0.2)]),
+            child: GestureDetector(
+              onTap: () async {
+                if (await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.musicPlayer)) {
+                  musicPlayerPanelVisible = false;
+                  await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.musicPlayer);
+                } else {
+                  await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.musicPlayer);
+                  musicPlayerPanelVisible = true;
+                }
+              },
+              child: SizedBox(
+                width: 250,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      // Blurred background
+                      if (playerData.art != null)
+                        Positioned.fill(
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                            child: Image(image: playerData.art!, fit: BoxFit.cover),
                           ),
                         ),
-                      ),
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        textTheme: contrastColor != null ? Theme.of(context).textTheme.apply(bodyColor: contrastColor, displayColor: contrastColor) : Theme.of(context).textTheme,
-                        sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: contrastColor, inactiveTrackColor: contrastColor!.withOpacity(0.3)) : Theme.of(context).sliderTheme,
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: playerData.art != null ? Image(image: playerData.art!, width: 48, height: 48, fit: BoxFit.cover) : Container(width: 48, height: 48, color: Theme.of(context).colorScheme.surface, child: Icon(Icons.album)),
+                      // Dominant color overlay mixed with blurred image
+                      if (dominantColor != null)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [dominantColor!.withValues(alpha: 0.2), dominantColor!.withValues(alpha: 0.2)]),
+                            ),
                           ),
-                          hovered
-                              ? MusicControls(
-                                  playerData: playerData,
-                                  updatePlayerData: () {
-                                    // The D-Bus listener will automatically update when properties change
-                                    // But we can manually trigger an update for immediate feedback
-                                    musicService.getPlayerData();
-                                  },
-                                )
-                              : MusicInfo(playerData: playerData),
-                        ],
+                        ),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          textTheme: contrastColor != null ? Theme.of(context).textTheme.apply(bodyColor: contrastColor, displayColor: contrastColor) : Theme.of(context).textTheme,
+                          sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: contrastColor, inactiveTrackColor: contrastColor!.withOpacity(0.3)) : Theme.of(context).sliderTheme,
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: playerData.art != null ? Image(image: playerData.art!, width: 48, height: 48, fit: BoxFit.cover) : Container(width: 48, height: 48, color: Theme.of(context).colorScheme.surface, child: Icon(Icons.album)),
+                            ),
+                            hovered
+                                ? MusicControls(
+                                    playerData: playerData,
+                                    updatePlayerData: () {
+                                      // The D-Bus listener will automatically update when properties change
+                                      // But we can manually trigger an update for immediate feedback
+                                      musicService.getPlayerData();
+                                    },
+                                  )
+                                : MusicInfo(playerData: playerData),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/music_player/music_player.dart';
 import 'package:hypr_flutter/panels/sidebar_left/sidebar_left.dart';
 import 'package:hypr_flutter/panels/sidebar_right/sidebar_right.dart';
 import 'package:hypr_flutter/panels/taskbar/taskbar.dart';
@@ -20,6 +21,8 @@ class ShellRouter extends StatelessWidget {
         return LeftSidebarWidget();
       case 'right_sidebar':
         return RightSidebarWidget();
+      case 'music_player':
+        return MusicPlayerWidget();
       default:
         return TaskbarWidget(windowId: windowId, monitorIndex: _getMonitorIndex()); // Default to taskbar for main window
     }
@@ -29,6 +32,8 @@ class ShellRouter extends StatelessWidget {
     if (args.contains('--window-type=sidebar')) {
       if (args.contains('--position=left')) return 'left_sidebar';
       if (args.contains('--position=right')) return 'right_sidebar';
+    } else if (args.contains('--window-type=popup')) {
+      if (args.contains('--class=musicPlayer')) return 'music_player';
     }
     return 'taskbar'; // Default
   }

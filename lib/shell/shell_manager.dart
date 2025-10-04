@@ -10,7 +10,7 @@ class ShellManager {
   // Singleton to ensure only ONE method channel handler is registered
   static final ShellManager _instance = ShellManager._internal();
   factory ShellManager() => _instance;
-  
+
   final List<String> _createdWindows = [];
   bool _isInitialized = false;
 
@@ -26,10 +26,10 @@ class ShellManager {
       _setupSharedCommunication();
       _isInitialized = true;
     }
-    
+
     // Initialize services (each isolate runs its own)
     ClockService().initialize();
-    
+
     if (isMainWindow) {
       print("ShellManager: MAIN window initialized");
     } else {
@@ -75,6 +75,9 @@ class ShellManager {
 
       // Create right sidebar
       await createRightSidebar();
+
+      // Create music player
+      await createMusicPlayer();
     } catch (e) {
       print('Error creating shell windows: $e');
     }
@@ -110,6 +113,17 @@ class ShellManager {
     await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
     await FlLinuxWindowManager.instance.setLayerMargin(top: 8, left: 8, right: 8, bottom: 8, windowId: windowId);
+    FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
+
+    await _createSharedChannel(windowId);
+  }
+
+  Future<void> createMusicPlayer() async {
+    const windowId = WindowIds.musicPlayer;
+
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: musicPlayerWidth, height: 180, args: ["--class=musicPlayer", "--name=$windowId", "--window-type=popup"]);
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value, windowId: windowId);
+    await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
     FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
 
     await _createSharedChannel(windowId);

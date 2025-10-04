@@ -10,6 +10,8 @@ List<String> initialArgs = [];
 HyprlandCtl hyprCtl = HyprlandCtl();
 HyprlandIpcManager hyprIpc = HyprlandIpcManager.instance;
 
+const int musicPlayerWidth = 300;
+
 // Note: Each isolate (window) has its own copy of these variables
 // Services are initialized per-isolate, not globally
 
