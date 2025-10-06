@@ -66,62 +66,60 @@ class _AudioTabState extends State<AudioTab> {
   @override
   Widget build(BuildContext context) {
     return initialized
-        ? Expanded(
-            child: Column(
-              children: [
-                Text("system"),
-                DefaultTabController(
-                  length: 3,
-                  child: Expanded(
-                    child: Column(
-                      children: [
-                        TabBar(
-                          tabs: [
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.apps),
-                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Apps")),
-                                ],
-                              ),
+        ? Column(
+            children: [
+              Text("system"),
+              DefaultTabController(
+                length: 3,
+                child: Expanded(
+                  child: Column(
+                    children: [
+                      TabBar(
+                        tabs: [
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.apps),
+                                Padding(padding: const EdgeInsets.only(left: 4), child: Text("Apps")),
+                              ],
                             ),
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.speaker_group_rounded),
-                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Outputs")),
-                                ],
-                              ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.speaker_group_rounded),
+                                Padding(padding: const EdgeInsets.only(left: 4), child: Text("Outputs")),
+                              ],
                             ),
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.settings_input_component),
-                                  Padding(padding: const EdgeInsets.only(left: 4), child: Text("Inputs")),
-                                ],
-                              ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.settings_input_component),
+                                Padding(padding: const EdgeInsets.only(left: 4), child: Text("Inputs")),
+                              ],
                             ),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            Center(child: Text("tab 1")),
+                            SinkController(sinks: sinks, client: client),
+                            SourceController(sources: sources, client: client),
                           ],
                         ),
-                        Expanded(
-                          child: TabBarView(
-                            children: [
-                              Center(child: Text("tab 1")),
-                              SinkController(sinks: sinks, client: client),
-                              SourceController(sources: sources, client: client),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           )
-        : Container();
+        : const SizedBox.shrink();
   }
 }
