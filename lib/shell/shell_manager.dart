@@ -86,25 +86,12 @@ class ShellManager {
   Future<void> createTaskbar({required int monitorIndex}) async {
     final windowId = "taskbar_$monitorIndex";
 
-    await FlLinuxWindowManager.instance.createWindow(
-      windowId: windowId,
-      title: "Taskbar-$monitorIndex",
-      isLayer: true,
-      width: 1920,
-      height: 48,
-      args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"],
-    );
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Taskbar-$monitorIndex", isLayer: true, width: 1920, height: 48, args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"]);
     await FlLinuxWindowManager.instance.enableLayerAutoExclusive(windowId: windowId);
-    await FlLinuxWindowManager.instance.setLayerAnchor(
-      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value, windowId: windowId);
     await FlLinuxWindowManager.instance.setMonitor(monitorId: monitorIndex, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(
-      KeyboardMode.none,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
 
     await _createSharedChannel(windowId);
   }
@@ -112,23 +99,10 @@ class ShellManager {
   Future<void> createLeftSidebar() async {
     const windowId = WindowIds.leftSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(
-      windowId: windowId,
-      title: "Left Sidebar",
-      isLayer: true,
-      width: 200,
-      height: 1032,
-      args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"],
-    );
-    await FlLinuxWindowManager.instance.setLayerAnchor(
-      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.bottom.value,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Left Sidebar", isLayer: true, width: 200, height: 1032, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"]);
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(
-      KeyboardMode.none,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
     await _createSharedChannel(windowId);
@@ -137,30 +111,11 @@ class ShellManager {
   Future<void> createRightSidebar() async {
     const windowId = WindowIds.rightSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(
-      windowId: windowId,
-      title: "Right Sidebar",
-      isLayer: true,
-      width: 500,
-      height: 1018,
-      args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"],
-    );
-    await FlLinuxWindowManager.instance.setLayerAnchor(
-      anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: 500, height: 1018, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"]);
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
-    await FlLinuxWindowManager.instance.setLayerMargin(
-      top: 8,
-      left: 8,
-      right: 8,
-      bottom: 8,
-      windowId: windowId,
-    );
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(
-      KeyboardMode.none,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.setLayerMargin(top: 8, left: 8, right: 8, bottom: 8, windowId: windowId);
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
     await _createSharedChannel(windowId);
@@ -169,34 +124,38 @@ class ShellManager {
   Future<void> createMusicPlayer() async {
     const windowId = WindowIds.musicPlayer;
 
-    await FlLinuxWindowManager.instance.createWindow(
-      windowId: windowId,
-      title: "Right Sidebar",
-      isLayer: true,
-      width: musicPlayerWidth,
-      height: 100,
-      args: ["--class=musicPlayer", "--name=$windowId", "--window-type=popup"],
-    );
-    await FlLinuxWindowManager.instance.setLayerAnchor(
-      anchor: ScreenEdge.top.value | ScreenEdge.left.value,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: musicPlayerWidth, height: 100, args: ["--class=musicPlayer", "--name=$windowId", "--window-type=popup"]);
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(
-      KeyboardMode.none,
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
+    await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
+
+    await _createSharedChannel(windowId);
+  }
+
+  Future<void> createSettingsWindow() async {
+    const windowId = WindowIds.settings;
+
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Settings", isLayer: false, width: 800, height: 600, args: ["--class=settings", "--name=$windowId", "--window-type=window"]);
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
+    await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: true, windowId: windowId);
+
+    await _createSharedChannel(windowId);
+  }
+
+  Future<void> createMenu() async {
+    const windowId = WindowIds.menu;
+
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Menu", isLayer: false, width: 800, height: 600, args: ["--class=menu", "--name=$windowId", "--window-type=popup"]);
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
+    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
     await _createSharedChannel(windowId);
   }
 
   Future<void> _createSharedChannel(String windowId) async {
-    await FlLinuxWindowManager.instance.createSharedMethodChannel(
-      channelName: "shell_communication",
-      shareWithWindowId: "main",
-      windowId: windowId,
-    );
+    await FlLinuxWindowManager.instance.createSharedMethodChannel(channelName: "shell_communication", shareWithWindowId: "main", windowId: windowId);
   }
 
   void sendMessageToWindow(String windowId, String method, [dynamic args]) {

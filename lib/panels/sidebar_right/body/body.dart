@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/sidebar_right/body/audio/audio_tab.dart';
 import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth/bluetooth_tab.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/network/network_tab.dart';
 import 'package:hypr_flutter/services/bluetooth.dart';
+import 'package:hypr_flutter/services/network.dart';
 
 class SidebarRightBody extends StatefulWidget {
   const SidebarRightBody({super.key});
@@ -12,10 +14,11 @@ class SidebarRightBody extends StatefulWidget {
 
 class SidebarRightBodyState extends State<SidebarRightBody> {
   BluetoothService bluetoothService = BluetoothService();
+  final NetworkService networkService = NetworkService();
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: bluetoothService,
+      animation: Listenable.merge([bluetoothService, networkService]),
       builder: (_, __) {
         return DefaultTabController(
           length: bluetoothService.available ? 4 : 3,
@@ -35,8 +38,7 @@ class SidebarRightBodyState extends State<SidebarRightBody> {
                     children: [
                       AudioTab(),
                       if (bluetoothService.available) BluetoothTab(bluetoothService: bluetoothService),
-
-                      Center(child: Text("Tab 2")),
+                      NetworkTab(networkService: networkService),
                       Center(child: Text("Tab 3")),
                     ],
                   ),

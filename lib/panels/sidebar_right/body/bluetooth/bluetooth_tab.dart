@@ -13,68 +13,75 @@ class BluetoothTab extends StatefulWidget {
 }
 
 class _BluetoothTabState extends State<BluetoothTab> {
-  bool isScanning = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    isScanning = widget.bluetoothService.adapter!.discovering;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(widget.bluetoothService.adapter?.name ?? "unknown"),
-                isScanning
-                    ? ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            widget.bluetoothService.adapter!.stopDiscovery();
-                            isScanning = true;
-                          });
-                        },
-                        child: Text("Stop scanning"),
-                      )
-                    : ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            widget.bluetoothService.adapter!.startDiscovery();
-                            isScanning = false;
-                          });
-                        },
-                        child: Text("Scan"),
-                      ),
-              ],
-            ),
-          ),
-          Divider(color: Colors.grey[700], endIndent: 8, indent: 8),
-          AnimatedBuilder(
-            animation: widget.bluetoothService,
-            builder: (_, __) {
-              return Expanded(
+    return AnimatedBuilder(
+      animation: widget.bluetoothService,
+      builder: (_, __) {
+        final service = widget.bluetoothService;
+        final discovering = service.discovering;
+
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(service.adapter?.name ?? "unknown"),
+                    ElevatedButton(
+                      onPressed: service.available
+                          ? () {
+                              if (discovering) {
+                                service.stopDiscovery();
+                              } else {
+                                service.startDiscovery();
+                              }
+                            }
+                          : null,
+                      child: discovering
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                ),
+                                SizedBox(width: 8),
+                                Text("Stop scanning"),
+                              ],
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.bluetooth_searching_rounded),
+                                SizedBox(width: 8),
+                                Text("Scan"),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(color: Colors.grey[700], endIndent: 8, indent: 8),
+              Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      BluetoothList(itemBuilder: widget.bluetoothService.connectedDevices, title: "Connected"),
-                      BluetoothList(itemBuilder: widget.bluetoothService.trustedDevices, title: "Trusted"),
-                      BluetoothList(itemBuilder: widget.bluetoothService.discoveredDevices, title: "Discovered"),
+                      BluetoothList(itemBuilder: service.connectedDevices, title: "Connected"),
+                      BluetoothList(itemBuilder: service.trustedDevices, title: "Trusted"),
+                      BluetoothList(itemBuilder: service.discoveredDevices, title: "Discovered"),
                     ],
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

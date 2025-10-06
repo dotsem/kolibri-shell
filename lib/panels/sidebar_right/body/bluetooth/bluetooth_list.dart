@@ -1,5 +1,6 @@
 import 'package:bluez/bluez.dart';
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth/trust_device_modal.dart';
 
 class BluetoothList extends StatefulWidget {
   final List<BlueZDevice> itemBuilder;
@@ -73,6 +74,13 @@ class _BluetoothListState extends State<BluetoothList> {
                                 )
                               : ElevatedButton(
                                   onPressed: () {
+                                    if (!device.trusted) {
+                                      showTrustDeviceModal(context, device).then((value) {
+                                        if (value) {
+                                          device.setTrusted(value);
+                                        }
+                                      });
+                                    }
                                     device.connect();
                                   },
                                   child: Text("Connect"),

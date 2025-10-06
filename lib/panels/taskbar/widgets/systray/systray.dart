@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/systray/audio.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/bluetooth.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/wifi.dart';
 
@@ -10,9 +11,9 @@ class SystemTrayWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: WifiIndicator()),
-
-          Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: BluetoothIndicator()),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: AudioIndicator()),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: WifiIndicator()),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: BluetoothIndicator()),
         ],
       ),
     );
