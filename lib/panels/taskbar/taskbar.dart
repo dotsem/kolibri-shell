@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
-import 'package:hypr_flutter/config/theme/color/dark.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
-import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/center/active_window.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/systray/battery.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/systray/clock.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/systray.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/workspaces/workspaces.dart';
 
@@ -71,7 +72,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                   child: Row(
                     children: [
                       SidebarToggleButton(
-                        icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
+                        widget: SvgPicture.asset("assets/icons/arch-symbolic.svg", colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn), height: 28, width: 28),
                         sidebarId: WindowIds.leftSidebar,
                         taskbarId: widget.windowId,
                       ),
@@ -90,13 +91,11 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                   right: 0,
                   child: Row(
                     children: [
-                      _buildAppLauncher(),
-                      SystemTrayWidget(),
-                      SidebarToggleButton(
-                        icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.surface),
-                        sidebarId: WindowIds.rightSidebar,
-                        taskbarId: widget.windowId,
-                      ),
+                      Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: BatteryIndicator()),
+
+                      Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: Clock()),
+
+                      SidebarToggleButton(widget: SystemTrayWidget(), sidebarId: WindowIds.rightSidebar, taskbarId: widget.windowId),
                     ],
                   ),
                 ),
@@ -104,18 +103,6 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAppLauncher() {
-    return InputRegion(
-      child: IconButton(
-        icon: Icon(Icons.apps, color: Theme.of(context).colorScheme.onSurface),
-        onPressed: () {
-          print("App launcher clicked");
-          // Handle app launcher
-        },
       ),
     );
   }

@@ -1,10 +1,6 @@
-import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
-import 'package:hypr_flutter/panels/taskbar/widgets/systray/battery.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/bluetooth.dart';
-import 'package:hypr_flutter/panels/taskbar/widgets/systray/clock.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/wifi.dart';
-import 'package:hypr_flutter/services/clock.dart';
 
 class SystemTrayWidget extends StatelessWidget {
   @override
@@ -14,20 +10,9 @@ class SystemTrayWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          BatteryIndicator(),
-          InputRegion(
-            child: IconButton(
-              icon: Icon(Icons.volume_up, color: Colors.white, size: 16),
-              onPressed: () => print("Volume clicked"),
-            ),
-          ),
-          SizedBox(width: 8),
-          Clock(),
-          SizedBox(width: 8),
-          WifiIndicator(),
-          SizedBox(width: 8),
+          Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: WifiIndicator()),
 
-          BluetoothIndicator(),
+          Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: BluetoothIndicator()),
         ],
       ),
     );
