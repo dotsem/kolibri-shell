@@ -4,6 +4,7 @@ import 'package:hypr_flutter/panels/sidebar_right/body/bluetooth/bluetooth_tab.d
 import 'package:hypr_flutter/panels/sidebar_right/body/network/network_tab.dart';
 import 'package:hypr_flutter/services/bluetooth.dart';
 import 'package:hypr_flutter/services/network.dart';
+import 'package:hypr_flutter/panels/sidebar_right/body/system/system_tab.dart';
 
 class SidebarRightBody extends StatefulWidget {
   const SidebarRightBody({super.key});
@@ -39,7 +40,7 @@ class SidebarRightBodyState extends State<SidebarRightBody> {
                       AudioTab(),
                       if (bluetoothService.available) BluetoothTab(bluetoothService: bluetoothService),
                       NetworkTab(networkService: networkService),
-                      Center(child: Text("Tab 3")),
+                      const SystemTab(),
                     ],
                   ),
                 ),

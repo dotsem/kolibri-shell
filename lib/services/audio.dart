@@ -19,7 +19,10 @@ class AudioService extends ChangeNotifier {
   String? _defaultSinkName;
 
   StreamSubscription? _sinkSubscription;
+  StreamSubscription? _sinkRemovedSubscription;
   StreamSubscription? _serverInfoSubscription;
+  Timer? _recoveryTimer;
+  int _recoveryAttempts = 0;
 
   bool get available => _initialized && _defaultSink != null;
   bool get muted => _defaultSink?.mute ?? false;
@@ -41,6 +44,10 @@ class AudioService extends ChangeNotifier {
 
       _sinkSubscription = _client.onSinkChanged.listen((_) {
         _refreshDefaultSink();
+      });
+
+      _sinkRemovedSubscription = _client.onSinkRemoved.listen((_) {
+        _handleSinkLoss();
       });
 
       _initialized = true;
@@ -70,10 +77,19 @@ class AudioService extends ChangeNotifier {
       _defaultSink = _findSinkByName(sinks, _defaultSinkName);
       if (_defaultSink == null && sinks.isNotEmpty) {
         _defaultSink = sinks.first;
+        _defaultSinkName = _defaultSink?.name;
       }
+
+      if (_defaultSink == null) {
+        _handleSinkLoss();
+        return;
+      }
+
+      _resetRecoveryState();
     } catch (e) {
       debugPrint('AudioService failed to refresh sinks: $e');
-      _defaultSink = null;
+      _handleSinkLoss();
+      return;
     }
 
     notifyListeners();
@@ -119,9 +135,46 @@ class AudioService extends ChangeNotifier {
 
   Future<void> disposeService() async {
     await _sinkSubscription?.cancel();
+    await _sinkRemovedSubscription?.cancel();
     await _serverInfoSubscription?.cancel();
+    _recoveryTimer?.cancel();
     try {
       await _client.dispose();
     } catch (_) {}
+  }
+
+  void _handleSinkLoss() {
+    if (_defaultSink != null) {
+      _defaultSink = null;
+      notifyListeners();
+    }
+    _scheduleRecovery();
+  }
+
+  void _scheduleRecovery() {
+    if (_recoveryTimer != null) {
+      return;
+    }
+    const maxAttempts = 5;
+    if (_recoveryAttempts >= maxAttempts) {
+      return;
+    }
+    _recoveryTimer = Timer(const Duration(seconds: 2), () async {
+      _recoveryTimer?.cancel();
+      _recoveryTimer = null;
+      _recoveryAttempts++;
+      await _loadServerInfo();
+      if (_defaultSink == null) {
+        _scheduleRecovery();
+      } else {
+        _resetRecoveryState();
+      }
+    });
+  }
+
+  void _resetRecoveryState() {
+    _recoveryTimer?.cancel();
+    _recoveryTimer = null;
+    _recoveryAttempts = 0;
   }
 }
