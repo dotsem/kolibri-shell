@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hypr_flutter/panels/sidebar_right/header/hypr_flutter_runner.dart';
 import 'package:hypr_flutter/services/system.dart';
 
 class SidebarRightHeader extends StatefulWidget {
@@ -33,6 +34,10 @@ class SidebarRightHeaderState extends State<SidebarRightHeader> {
               ),
             ],
           ),
+          const Spacer(),
+          HyprFlutterRunner(),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.power_settings_new_outlined)),
         ],
       ),
     );
