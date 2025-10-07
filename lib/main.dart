@@ -5,6 +5,7 @@ import 'package:fl_linux_window_manager/models/keyboard_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/data.dart';
+import 'package:hypr_flutter/services/app_catalog.dart';
 import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/shell/shell_router.dart';
 import 'package:hypr_flutter/window_ids.dart';
@@ -24,6 +25,9 @@ void main(List<String> args) async {
 
   // config for taskbar on window 0 (default)
   if (args.isEmpty) {
+    await AppCatalogService().initialize();
+    print("app catalog loaded");
+
     FlLinuxWindowManager.instance.setLayer(WindowLayer.top);
     FlLinuxWindowManager.instance.setSize(width: 1920, height: 50);
     FlLinuxWindowManager.instance.setTitle(title: "Taskbar-0");
@@ -32,9 +36,7 @@ void main(List<String> args) async {
     FlLinuxWindowManager.instance.enableLayerAutoExclusive();
     FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false);
 
-    FlLinuxWindowManager.instance.setLayerAnchor(
-      anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value,
-    );
+    FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value);
     FlLinuxWindowManager.instance.setMonitor(monitorId: 0);
   }
 
