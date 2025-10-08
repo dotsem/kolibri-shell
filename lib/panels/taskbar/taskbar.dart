@@ -56,6 +56,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
   @override
   Widget build(BuildContext context) {
     return InputRegion.negative(
+      windowId: widget.windowId,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: theme,
@@ -75,6 +76,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                         widget: SvgPicture.asset("assets/icons/arch-symbolic.svg", colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn), height: 28, width: 28),
                         sidebarId: WindowIds.leftSidebar,
                         taskbarId: widget.windowId,
+                        windowId: widget.windowId,
                       ),
                       Padding(
                         padding: const EdgeInsets.only(left: 4, right: 8),
@@ -95,7 +97,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
 
                       Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: Clock()),
 
-                      SidebarToggleButton(widget: SystemTrayWidget(), sidebarId: WindowIds.rightSidebar, taskbarId: widget.windowId),
+                      SidebarToggleButton(widget: SystemTrayWidget(), sidebarId: WindowIds.rightSidebar, taskbarId: widget.windowId, windowId: widget.windowId),
                     ],
                   ),
                 ),

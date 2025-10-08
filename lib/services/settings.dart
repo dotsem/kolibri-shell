@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingKey<T> {
@@ -12,20 +11,15 @@ class SettingKey<T> {
 class SettingsKeys {
   const SettingsKeys._();
 
-  static const SettingKey<List<String>> visibleDisks = SettingKey<List<String>>(
-    'system.visible_disks',
-    defaultValue: <String>[],
-  );
+  static const SettingKey<List<String>> visibleDisks = SettingKey<List<String>>('system.visible_disks', defaultValue: <String>[]);
 
-  static const SettingKey<bool> expandCpuSection = SettingKey<bool>(
-    'system.cpu.expand',
-    defaultValue: false,
-  );
+  static const SettingKey<bool> expandCpuSection = SettingKey<bool>('system.cpu.expand', defaultValue: false);
 
-  static const List<SettingKey<dynamic>> all = <SettingKey<dynamic>>[
-    visibleDisks,
-    expandCpuSection,
-  ];
+  static const SettingKey<String> codeEditors = SettingKey<String>('code_editor.available', defaultValue: '{"vscode": "code", "windsurf": "windsurf"}');
+
+  static const SettingKey<String> preferredCodeEditor = SettingKey<String>('code_editor.preferred', defaultValue: "windsurf");
+
+  static const List<SettingKey<dynamic>> all = <SettingKey<dynamic>>[visibleDisks, expandCpuSection, codeEditors, preferredCodeEditor];
 }
 
 class SettingsService {
@@ -48,14 +42,16 @@ class SettingsService {
 
     _initializationCompleter = Completer<void>();
 
-    SharedPreferences.getInstance().then((prefs) {
-      _prefs = prefs;
-      _initializationCompleter?.complete();
-      _initializationCompleter = null;
-    }).catchError((error, stackTrace) {
-      _initializationCompleter?.completeError(error, stackTrace);
-      _initializationCompleter = null;
-    });
+    SharedPreferences.getInstance()
+        .then((prefs) {
+          _prefs = prefs;
+          _initializationCompleter?.complete();
+          _initializationCompleter = null;
+        })
+        .catchError((error, stackTrace) {
+          _initializationCompleter?.completeError(error, stackTrace);
+          _initializationCompleter = null;
+        });
 
     return _initializationCompleter!.future;
   }

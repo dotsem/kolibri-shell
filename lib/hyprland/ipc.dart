@@ -60,6 +60,7 @@ class HyprlandIpcManager {
   // Socket connection
   Socket? _socket;
   StreamSubscription<Uint8List>? _socketSubscription;
+  String _pendingChunk = '';
 
   // Individual streams for each event type
   final Map<HyprlandEventType, BehaviorSubject<HyprlandEvent>> _eventStreams = {};
@@ -117,11 +118,20 @@ class HyprlandIpcManager {
   }
 
   void _handleSubscriptionData(Uint8List rawData) {
-    String data = String.fromCharCodes(rawData);
-    for (String line in data.split('\n')) {
-      if (line.isNotEmpty) {
-        _parseEvent(line);
+    try {
+      final String chunk = utf8.decode(rawData);
+      final String combined = _pendingChunk + chunk;
+      final List<String> lines = combined.split('\n');
+      _pendingChunk = lines.removeLast();
+
+      for (final String line in lines) {
+        if (line.isNotEmpty) {
+          _parseEvent(line);
+        }
       }
+    } on FormatException catch (error) {
+      print('Hyprland IPC decode error: $error');
+      _pendingChunk = '';
     }
   }
 
@@ -173,6 +183,7 @@ class HyprlandIpcManager {
   void _handleDisconnect() {
     print('Socket disconnected');
     _connectionController.add(false);
+    _pendingChunk = '';
     _scheduleReconnect();
   }
 

@@ -6,11 +6,13 @@ class SidebarToggleButton extends StatelessWidget {
   final Widget widget;
   final String sidebarId;
   final String taskbarId;
-  const SidebarToggleButton({super.key, required this.widget, required this.sidebarId, required this.taskbarId});
+  final String? windowId;
+  const SidebarToggleButton({super.key, required this.widget, required this.sidebarId, required this.taskbarId, this.windowId});
 
   @override
   Widget build(BuildContext context) {
     return InputRegion(
+      windowId: windowId,
       child: IconButton(
         onPressed: () async {
           if (await FlLinuxWindowManager.instance.isVisible(windowId: sidebarId)) {
