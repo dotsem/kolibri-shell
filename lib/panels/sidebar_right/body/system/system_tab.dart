@@ -12,6 +12,49 @@ class SystemTab extends StatefulWidget {
 
 class _SystemTabState extends State<SystemTab> {
   final SystemInfoService _systemInfoService = SystemInfoService();
+  TabController? _tabController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final TabController? controller = DefaultTabController.of(context);
+    if (_tabController != controller) {
+      _tabController?.removeListener(_handleTabChange);
+      _tabController = controller;
+      _tabController?.addListener(_handleTabChange);
+      _updateTabActive();
+    }
+  }
+
+  void _handleTabChange() {
+    if (_tabController == null) {
+      return;
+    }
+    if (!_tabController!.indexIsChanging) {
+      _updateTabActive();
+    }
+  }
+
+  void _updateTabActive() {
+    final TabController? controller = _tabController;
+    if (controller == null) {
+      return;
+    }
+    final int systemTabIndex = controller.length - 1;
+    final bool isActive = controller.index == systemTabIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _systemInfoService.setSystemTabActive(isActive);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _systemInfoService.setSystemTabActive(false);
+    _tabController?.removeListener(_handleTabChange);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +80,20 @@ class _SystemTabState extends State<SystemTab> {
             children: [
               _SectionCard(
                 title: 'System',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      service.isCollecting ? 'Collecting' : 'Paused',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
+                    ),
+                    const SizedBox(width: 8),
+                    Switch.adaptive(
+                      value: service.collectInBackground,
+                      onChanged: (value) => _systemInfoService.setCollectInBackground(value),
+                    ),
+                  ],
+                ),
                 children: [
                   _InfoRow(label: 'Distribution', value: service.distroName),
                   _InfoRow(label: 'Uptime', value: _formatDuration(service.uptime)),

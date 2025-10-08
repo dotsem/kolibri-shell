@@ -2,15 +2,17 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' show basename;
 
+import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hypr_flutter/services/settings.dart';
+import 'package:hypr_flutter/window_ids.dart';
 
 class SystemInfoService extends ChangeNotifier {
   static final SystemInfoService _instance = SystemInfoService._internal();
   factory SystemInfoService() => _instance;
 
-  static const int _historyLength = 120;
-  static const Duration _updateInterval = Duration(seconds: 2);
+  static const int _historyLength = 60;
+  static const Duration _updateInterval = Duration(seconds: 1);
 
   final SettingsService _settings = SettingsService();
 
@@ -56,10 +58,16 @@ class SystemInfoService extends ChangeNotifier {
   List<DiskUsage> disks = <DiskUsage>[];
   Set<String> _visibleDiskMounts = <String>{};
 
-  Timer? _updateTimer;
   bool _updateInProgress = false;
   bool _cpuDetailsExpanded = false;
   bool initialized = false;
+  bool _collecting = false;
+  bool _collectInBackground = false;
+  bool _systemTabActive = false;
+  bool _lastSidebarVisible = false;
+  bool _evaluatingCollection = false;
+  Timer? _updateTimer;
+  bool _timerTickInProgress = false;
 
   SystemInfoService._internal() {
     unawaited(_initialize());
@@ -70,14 +78,91 @@ class SystemInfoService extends ChangeNotifier {
 
   Future<void> _initialize() async {
     await _settings.initialize();
-    await Future.wait([
-      _loadCpuInfo(),
-      _loadGpuInfo(),
-      _loadDiskPreferences(),
-      _loadCpuPreferences(),
-    ]);
-    await updateAll();
-    _updateTimer = Timer.periodic(_updateInterval, (_) => updateAll());
+    await Future.wait([_loadCpuInfo(), _loadGpuInfo(), _loadDiskPreferences(), _loadCpuPreferences()]);
+    await updateAll(force: true);
+  }
+
+  bool get isCollecting => _collecting;
+  bool get collectInBackground => _collectInBackground;
+
+  Future<void> setCollectInBackground(bool enabled) async {
+    if (_collectInBackground == enabled) {
+      return;
+    }
+
+    _collectInBackground = enabled;
+    await _updateCollectionState();
+    notifyListeners();
+  }
+
+  Future<void> setSystemTabActive(bool active) async {
+    if (_systemTabActive == active) {
+      return;
+    }
+
+    _systemTabActive = active;
+    await _updateCollectionState();
+    notifyListeners();
+  }
+
+  Future<void> _updateCollectionState() async {
+    if (_evaluatingCollection) {
+      return;
+    }
+
+    _evaluatingCollection = true;
+    try {
+      final bool sidebarVisible = _systemTabActive ? await _isRightSidebarVisible() : _lastSidebarVisible;
+      _lastSidebarVisible = sidebarVisible;
+      final bool shouldCollect = (_systemTabActive && sidebarVisible) || _collectInBackground;
+      final bool needTimer = _systemTabActive || _collectInBackground;
+
+      _ensureTimer(needTimer);
+
+      if (_collecting != shouldCollect) {
+        _collecting = shouldCollect;
+        notifyListeners();
+      }
+    } finally {
+      _evaluatingCollection = false;
+    }
+  }
+
+  void _ensureTimer(bool needTimer) {
+    if (needTimer) {
+      if (_updateTimer == null) {
+        _updateTimer = Timer.periodic(_updateInterval, (_) => _handleTimerTick());
+      }
+    } else {
+      _updateTimer?.cancel();
+      _updateTimer = null;
+    }
+  }
+
+  void _handleTimerTick() {
+    if (_timerTickInProgress) {
+      return;
+    }
+
+    _timerTickInProgress = true;
+    _onTimerTick().whenComplete(() {
+      _timerTickInProgress = false;
+    });
+  }
+
+  Future<void> _onTimerTick() async {
+    await _updateCollectionState();
+    if (_collecting) {
+      await updateAll();
+    }
+  }
+
+  Future<bool> _isRightSidebarVisible() async {
+    try {
+      return await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.rightSidebar);
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> setCpuDetailsExpanded(bool expanded) async {
@@ -166,10 +251,7 @@ class SystemInfoService extends ChangeNotifier {
     try {
       final lspci = await Process.run('lspci', []);
       if (lspci.exitCode == 0) {
-        final gpuLine = lspci.stdout
-            .toString()
-            .split('\n')
-            .firstWhere((line) => line.toLowerCase().contains('vga compatible controller'), orElse: () => '');
+        final gpuLine = lspci.stdout.toString().split('\n').firstWhere((line) => line.toLowerCase().contains('vga compatible controller'), orElse: () => '');
         if (gpuLine.isNotEmpty) {
           final parts = gpuLine.split(':');
           gpuName = parts.last.trim();
@@ -214,8 +296,8 @@ class SystemInfoService extends ChangeNotifier {
   }
 
   /// Update all system info
-  Future<void> updateAll() async {
-    if (_updateInProgress) return;
+  Future<void> updateAll({bool force = false}) async {
+    if (_updateInProgress || (!force && !_collecting)) return;
     _updateInProgress = true;
     try {
       await _updateMemoryAndSwap();
@@ -283,10 +365,7 @@ class SystemInfoService extends ChangeNotifier {
   /// GPU usage (NVIDIA or AMD, best effort)
   Future<void> _updateGpuUsage() async {
     try {
-      final nvidiaResult = await Process.run('nvidia-smi', [
-        '--query-gpu=utilization.gpu,memory.total,memory.used,temperature.gpu,name',
-        '--format=csv,noheader,nounits'
-      ]);
+      final nvidiaResult = await Process.run('nvidia-smi', ['--query-gpu=utilization.gpu,memory.total,memory.used,temperature.gpu,name', '--format=csv,noheader,nounits']);
 
       if (nvidiaResult.exitCode == 0) {
         final line = nvidiaResult.stdout.toString().trim();
@@ -343,11 +422,7 @@ class SystemInfoService extends ChangeNotifier {
     try {
       final thermalDir = Directory('/sys/class/thermal');
       if (thermalDir.existsSync()) {
-        final entries = await thermalDir
-            .list()
-            .where((entity) => entity is Directory && basename(entity.path).startsWith('thermal_zone'))
-            .cast<Directory>()
-            .toList();
+        final entries = await thermalDir.list().where((entity) => entity is Directory && basename(entity.path).startsWith('thermal_zone')).cast<Directory>().toList();
 
         for (final entry in entries) {
           final reading = await _readThermalZone(entry);
@@ -395,7 +470,6 @@ class SystemInfoService extends ChangeNotifier {
       } else if (coreTempCount > 0) {
         cpuTemp = totalCoreTemp / coreTempCount;
       }
-
     } catch (e) {
       stderr.writeln('Temperature sensors update error: $e');
     }
@@ -421,12 +495,7 @@ class SystemInfoService extends ChangeNotifier {
       final id = 'thermal:${basename(directory.path)}';
       final isCpu = typeText.toLowerCase().contains('cpu') || typeText.toLowerCase().contains('package');
 
-      return _TempReading(
-        id: id,
-        label: label,
-        temperature: temp,
-        isCpuRelated: isCpu,
-      );
+      return _TempReading(id: id, label: label, temperature: temp, isCpuRelated: isCpu);
     } catch (e) {
       stderr.writeln('Thermal zone read error: $e');
       return null;
@@ -445,10 +514,7 @@ class SystemInfoService extends ChangeNotifier {
         final name = (await nameFile.readAsString()).trim().toLowerCase();
         if (where != null && !where(name)) continue;
 
-        final tempInputs = entry
-            .listSync()
-            .whereType<File>()
-            .where((file) => basename(file.path).startsWith('temp') && file.path.endsWith('_input'));
+        final tempInputs = entry.listSync().whereType<File>().where((file) => basename(file.path).startsWith('temp') && file.path.endsWith('_input'));
 
         for (final file in tempInputs) {
           final value = double.tryParse((await file.readAsString()).trim()) ?? double.nan;
@@ -458,9 +524,7 @@ class SystemInfoService extends ChangeNotifier {
           }
 
           final labelFile = File(file.path.replaceFirst('_input', '_label'));
-          final label = labelFile.existsSync()
-              ? (await labelFile.readAsString()).trim()
-              : '${name.toUpperCase()} ${basename(file.path).replaceAll('_input', '')}';
+          final label = labelFile.existsSync() ? (await labelFile.readAsString()).trim() : '${name.toUpperCase()} ${basename(file.path).replaceAll('_input', '')}';
 
           final id = 'hwmon:${basename(entry.path)}:${basename(file.path)}';
           readings.add(_TempReading(id: id, label: label, temperature: temp, isCpuRelated: false));
@@ -490,35 +554,33 @@ class SystemInfoService extends ChangeNotifier {
 
       final lines = result.stdout.toString().split('\n');
       // Skip header line
-      final parsed = lines.skip(1).where((line) => line.trim().isNotEmpty).map((line) {
-        final parts = line.split(RegExp(r'\s+'));
-        if (parts.length < 6) {
-          return null;
-        }
+      final parsed = lines
+          .skip(1)
+          .where((line) => line.trim().isNotEmpty)
+          .map((line) {
+            final parts = line.split(RegExp(r'\s+'));
+            if (parts.length < 6) {
+              return null;
+            }
 
-        final filesystem = parts[0];
-        final totalKb = double.tryParse(parts[1]) ?? 0;
-        final usedKb = double.tryParse(parts[2]) ?? 0;
-        final availableKb = double.tryParse(parts[3]) ?? 0;
-        final percentString = parts[4].replaceAll('%', '');
-        final mountPoint = parts[5];
+            final filesystem = parts[0];
+            final totalKb = double.tryParse(parts[1]) ?? 0;
+            final usedKb = double.tryParse(parts[2]) ?? 0;
+            final availableKb = double.tryParse(parts[3]) ?? 0;
+            final percentString = parts[4].replaceAll('%', '');
+            final mountPoint = parts[5];
 
-        // Ignore special filesystems like tmpfs/devtmpfs except root and home
-        if (filesystem.startsWith('tmpfs') || filesystem.startsWith('devtmpfs')) {
-          return null;
-        }
+            // Ignore special filesystems like tmpfs/devtmpfs except root and home
+            if (filesystem.startsWith('tmpfs') || filesystem.startsWith('devtmpfs')) {
+              return null;
+            }
 
-        final usagePercent = double.tryParse(percentString) ?? 0;
+            final usagePercent = double.tryParse(percentString) ?? 0;
 
-        return DiskUsage(
-          filesystem: filesystem,
-          mountPoint: mountPoint,
-          totalKb: totalKb,
-          usedKb: usedKb,
-          availableKb: availableKb,
-          usagePercent: usagePercent / 100,
-        );
-      }).whereType<DiskUsage>().toList();
+            return DiskUsage(filesystem: filesystem, mountPoint: mountPoint, totalKb: totalKb, usedKb: usedKb, availableKb: availableKb, usagePercent: usagePercent / 100);
+          })
+          .whereType<DiskUsage>()
+          .toList();
 
       availableDisks = parsed;
       final currentMounts = availableDisks.map((disk) => disk.mountPoint).toSet();
@@ -537,14 +599,7 @@ class SystemInfoService extends ChangeNotifier {
 }
 
 class DiskUsage {
-  DiskUsage({
-    required this.filesystem,
-    required this.mountPoint,
-    required this.totalKb,
-    required this.usedKb,
-    required this.availableKb,
-    required this.usagePercent,
-  });
+  DiskUsage({required this.filesystem, required this.mountPoint, required this.totalKb, required this.usedKb, required this.availableKb, required this.usagePercent});
 
   final String filesystem;
   final String mountPoint;
