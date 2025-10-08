@@ -1,7 +1,9 @@
+import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hypr_flutter/panels/sidebar_right/header/hypr_flutter_runner.dart';
 import 'package:hypr_flutter/services/system.dart';
+import 'package:hypr_flutter/window_ids.dart';
 
 class SidebarRightHeader extends StatefulWidget {
   final SystemInfoService systemInfoService;
@@ -36,7 +38,15 @@ class SidebarRightHeaderState extends State<SidebarRightHeader> {
           ),
           const Spacer(),
           HyprFlutterRunner(),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
+          IconButton(
+            onPressed: () async {
+              if (!await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.settings)) {
+                await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.settings);
+                await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.rightSidebar);
+              }
+            },
+            icon: const Icon(Icons.settings),
+          ),
           IconButton(onPressed: () {}, icon: const Icon(Icons.power_settings_new_outlined)),
         ],
       ),

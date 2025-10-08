@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/config/config.dart' as config;
+import 'package:hypr_flutter/services/settings.dart';
 
 class HyprFlutterRunner extends StatefulWidget {
   const HyprFlutterRunner({super.key});
@@ -16,6 +18,8 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
   bool _isReloading = false;
   bool _isCompiling = false;
   bool _isDebugging = false;
+
+  final SettingsService _settings = SettingsService();
 
   Future<void> _buildAndRunRelease() async {
     if (_isCompiling || _isReloading) {
@@ -85,7 +89,8 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
     final String quotedIdentifier = _quoteForShell(processIdentifier);
     final String quotedExecutable = _quoteForShell(resolvedExecutablePath);
 
-    final String command = '''
+    final String command =
+        '''
 (
   sleep 0.1
   killall -q $quotedIdentifier || true
@@ -95,11 +100,7 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
 ''';
 
     try {
-      await Process.start(
-        'sh',
-        ['-c', command],
-        mode: ProcessStartMode.detachedWithStdio,
-      );
+      await Process.start('sh', ['-c', command], mode: ProcessStartMode.detachedWithStdio);
     } catch (error, stackTrace) {
       debugPrint('HyprFlutterRunner restart scheduling failed: $error\n$stackTrace');
       if (mounted) {
@@ -130,33 +131,21 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
     setState(() => _isDebugging = true);
 
     final String projectDirectory = _resolvePath(config.hyprFlutterPath);
-    final String resolvedEditor = _resolvePath(config.defaultCodeEditor);
+    final Map<String, dynamic> storedEditors = jsonDecode(await _settings.getString(SettingsKeys.codeEditors)) as Map<String, dynamic>;
+    final Map<String, String> codeEditors = storedEditors.map((key, value) => MapEntry(key, value.toString()));
+    final String preferredCodeEditor = await _settings.getString(SettingsKeys.preferredCodeEditor);
+    final String? editorExecutable = codeEditors[preferredCodeEditor];
+    if (editorExecutable == null) {
+      debugPrint('Preferred code editor "$preferredCodeEditor" unavailable. Available keys: ${codeEditors.keys.join(', ')}');
+      setState(() => _isDebugging = false);
+      return;
+    }
+
+    await Process.run(editorExecutable, [projectDirectory]);
 
     await _terminateAndDiscardBinary();
 
-    final List<String> editorArgs = <String>[
-      projectDirectory,
-      '--command',
-      'workbench.action.terminal.new',
-      '--command',
-      'workbench.action.terminal.sendSequence',
-      '--commandArgs',
-      '{"text":"flutter run\\u000D"}',
-    ];
-
-    try {
-      await Process.start(
-        resolvedEditor,
-        editorArgs,
-        mode: ProcessStartMode.detachedWithStdio,
-      );
-    } catch (error, stackTrace) {
-      debugPrint('HyprFlutterRunner debug launch failed: $error\n$stackTrace');
-    } finally {
-      if (mounted) {
-        setState(() => _isDebugging = false);
-      }
-    }
+    setState(() => _isDebugging = false);
   }
 
   Future<void> _terminateAndDiscardBinary() async {
@@ -201,9 +190,7 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
     return debug
         ? ElevatedButton(
             onPressed: (_isCompiling || _isReloading) ? null : _buildAndRunRelease,
-            child: (_isCompiling || _isReloading)
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Build & Run'),
+            child: (_isCompiling || _isReloading) ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Build & Run'),
           )
         : Row(
             children: [
