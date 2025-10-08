@@ -15,6 +15,7 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
   bool debug = kDebugMode;
   bool _isReloading = false;
   bool _isCompiling = false;
+  bool _isDebugging = false;
 
   Future<void> _buildAndRunRelease() async {
     if (_isCompiling || _isReloading) {
@@ -121,6 +122,66 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
     return true;
   }
 
+  Future<void> _debugHyprFlutter() async {
+    if (_isDebugging || _isCompiling || _isReloading) {
+      return;
+    }
+
+    setState(() => _isDebugging = true);
+
+    final String projectDirectory = _resolvePath(config.hyprFlutterPath);
+    final String resolvedEditor = _resolvePath(config.defaultCodeEditor);
+
+    await _terminateAndDiscardBinary();
+
+    final List<String> editorArgs = <String>[
+      projectDirectory,
+      '--command',
+      'workbench.action.terminal.new',
+      '--command',
+      'workbench.action.terminal.sendSequence',
+      '--commandArgs',
+      '{"text":"flutter run\\u000D"}',
+    ];
+
+    try {
+      await Process.start(
+        resolvedEditor,
+        editorArgs,
+        mode: ProcessStartMode.detachedWithStdio,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('HyprFlutterRunner debug launch failed: $error\n$stackTrace');
+    } finally {
+      if (mounted) {
+        setState(() => _isDebugging = false);
+      }
+    }
+  }
+
+  Future<void> _terminateAndDiscardBinary() async {
+    final String executablePath = _resolvePath(config.buildPath);
+    final File binaryFile = File(executablePath).absolute;
+
+    if (!binaryFile.existsSync()) {
+      return;
+    }
+
+    final String processIdentifier = binaryFile.uri.pathSegments.last;
+
+    try {
+      await Process.run('killall', ['-q', processIdentifier]);
+    } catch (error) {
+      debugPrint('HyprFlutterRunner killall failed (ignored): $error');
+    }
+
+    try {
+      await binaryFile.delete();
+    } catch (error) {
+      debugPrint('HyprFlutterRunner failed to delete binary (ignored): $error');
+    }
+  }
+
   String _resolvePath(String path) {
     if (path.startsWith('~')) {
       final String? home = Platform.environment['HOME'];
@@ -150,7 +211,10 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
                 onPressed: (_isReloading || _isCompiling) ? null : _reloadHyprFlutter,
                 icon: _isReloading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
               ),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.bug_report)),
+              IconButton(
+                onPressed: (_isReloading || _isCompiling || _isDebugging) ? null : _debugHyprFlutter,
+                icon: _isDebugging ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.bug_report),
+              ),
             ],
           );
   }

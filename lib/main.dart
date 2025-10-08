@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:fl_linux_window_manager/models/layer.dart';
 import 'package:fl_linux_window_manager/models/screen_edge.dart';
@@ -5,6 +7,7 @@ import 'package:fl_linux_window_manager/models/keyboard_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/data.dart';
+import 'package:hypr_flutter/hyprland/ipc.dart';
 import 'package:hypr_flutter/services/app_catalog.dart';
 import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/shell/shell_router.dart';
@@ -59,6 +62,14 @@ class HyprlandShellApp extends StatefulWidget {
 class _HyprlandShellAppState extends State<HyprlandShellApp> {
   late ShellManager _shellManager;
 
+  void createPanels() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(Duration(milliseconds: 500), () {
+        _shellManager.createShellWindows();
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -70,10 +81,15 @@ class _HyprlandShellAppState extends State<HyprlandShellApp> {
 
     // Only main window creates additional windows
     if (isMainWindow) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(Duration(milliseconds: 500), () {
-          _shellManager.createShellWindows();
-        });
+      createPanels();
+    }
+
+    if (isMainWindow) {
+      hyprIpc.getEventStream(HyprlandEventType.monitoradded).listen((event) {
+        createPanels();
+      });
+      hyprIpc.getEventStream(HyprlandEventType.monitorremoved).listen((event) {
+        createPanels();
       });
     }
   }

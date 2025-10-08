@@ -164,7 +164,7 @@ class _WorkspacesState extends State<Workspaces> {
                   height: workspaceSize,
                   margin: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
                   child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 2, end: i == currentWorkspace ? 8 : 2),
+                    tween: Tween<double>(begin: 2, end: i == currentWorkspace ? 8 : 0),
                     duration: const Duration(milliseconds: 400),
                     curve: Curves.easeOutCubic,
                     builder: (context, paddingValue, _) {
