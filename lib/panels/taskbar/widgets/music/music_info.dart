@@ -20,9 +20,10 @@ class MusicInfo extends StatelessWidget {
             SizedBox(
               height: 24,
               child: Text(
-                "${playerData.title} ° ${playerData.artist}",
+                "${playerData.title} · ${playerData.artist.first}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color, fontWeight: FontWeight.w600),
               ),
             ),
             MusicSlider(playerData: playerData, onChanged: onSeek),

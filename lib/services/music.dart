@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:ui' show Color;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show HSLColor;
 import 'package:dbus/dbus.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 class MusicService extends ChangeNotifier {
   DBusClient? _dbusClient;
@@ -19,22 +23,35 @@ class MusicService extends ChangeNotifier {
     _initialize();
   }
 
+  Color _deriveGradientColor(Color source, {double darkness = 0.08, double saturationScale = 0.94, double opacity = 0.42}) {
+    final HSLColor hsl = HSLColor.fromColor(source);
+    final double adjustedLightness = (hsl.lightness * (1 - darkness)).clamp(0.0, 1.0);
+    final double adjustedSaturation = (hsl.saturation * saturationScale).clamp(0.0, 1.0);
+    final HSLColor adjusted = hsl.withLightness(adjustedLightness).withSaturation(adjustedSaturation);
+    return adjusted.toColor().withOpacity(opacity.clamp(0.0, 1.0));
+  }
+
+  Future<void> setVolume(double value) async {
+    final MusicPlayer? player = playerData;
+    if (player == null) {
+      return;
+    }
+
+    await player.setVolume(value.clamp(0.0, 1.0));
+    notifyListeners();
+  }
+
   Future<void> _initialize() async {
     try {
       _dbusClient = DBusClient.session();
 
       // List all MPRIS players
       final names = await _dbusClient!.listNames();
-      final mprisPlayers = names
-          .where((name) => name.startsWith('org.mpris.MediaPlayer2.'))
-          .toList();
+      final mprisPlayers = names.where((name) => name.startsWith('org.mpris.MediaPlayer2.')).toList();
 
       if (mprisPlayers.isNotEmpty) {
         // Use the first available player or find spotify
-        final spotifyPlayer = mprisPlayers.firstWhere(
-          (name) => name.contains('spotify'),
-          orElse: () => mprisPlayers.first,
-        );
+        final spotifyPlayer = mprisPlayers.firstWhere((name) => name.contains('spotify'), orElse: () => mprisPlayers.first);
         currentPlayer = spotifyPlayer.split('.').last;
 
         print('Found MPRIS player: $currentPlayer');
@@ -58,11 +75,7 @@ class MusicService extends ChangeNotifier {
     });
 
     // Listen to Seeked signal for instant position updates
-    final seekedSignals = DBusRemoteObjectSignalStream(
-      object: _playerObject!,
-      interface: 'org.mpris.MediaPlayer2.Player',
-      name: 'Seeked',
-    );
+    final seekedSignals = DBusRemoteObjectSignalStream(object: _playerObject!, interface: 'org.mpris.MediaPlayer2.Player', name: 'Seeked');
 
     _seekedSubscription = seekedSignals.listen((signal) {
       if (signal.values.isNotEmpty && signal.values[0] is DBusInt64) {
@@ -116,10 +129,35 @@ class MusicService extends ChangeNotifier {
       _currentPosition = (positionMicros / 1000000).round();
       final length = (lengthMicros / 1000000).round();
 
+      CachedNetworkImageProvider? artProvider;
+      Color gradientStart = const Color.fromRGBO(0, 0, 0, 0.18);
+      Color gradientEnd = const Color.fromRGBO(0, 0, 0, 0.14);
+
+      if (artUrl.isNotEmpty) {
+        artProvider = CachedNetworkImageProvider(artUrl, maxWidth: 256, maxHeight: 256);
+        try {
+          final PaletteGenerator palette = await PaletteGenerator.fromImageProvider(artProvider, maximumColorCount: 10);
+
+          final List<PaletteColor> paletteColors = palette.paletteColors.toList()..sort((a, b) => b.population.compareTo(a.population));
+
+          if (paletteColors.isNotEmpty) {
+            gradientStart = _deriveGradientColor(paletteColors.first.color, darkness: 0.06, saturationScale: 0.97, opacity: 0.38);
+          }
+
+          if (paletteColors.length > 1) {
+            gradientEnd = _deriveGradientColor(paletteColors[1].color, darkness: 0.1, saturationScale: 0.95, opacity: 0.35);
+          } else {
+            gradientEnd = _deriveGradientColor(gradientStart.withOpacity(1.0), darkness: 0.12, saturationScale: 0.92, opacity: 0.32);
+          }
+        } catch (e) {
+          debugPrint('Failed to generate palette for gradients: $e');
+        }
+      }
+
       playerData = MusicPlayer(
         _playerObject!,
         title,
-        artists.isNotEmpty ? artists.first : 'Unknown',
+        artists.isNotEmpty ? artists : ['Unknown'],
         album,
         trackId,
         artUrl,
@@ -127,6 +165,9 @@ class MusicService extends ChangeNotifier {
         volumeValue,
         isPlaying,
         _currentPosition,
+        artProvider: artProvider,
+        gradientStart: gradientStart,
+        gradientEnd: gradientEnd,
       );
 
       _startPositionTimer(isPlaying);
@@ -239,15 +280,17 @@ class MusicService extends ChangeNotifier {
 class MusicPlayer {
   final DBusRemoteObject _playerObject;
   final String title;
-  final String artist;
+  final List<String> artist;
   final String album;
   final String trackId;
   final String artUrl;
-  bool isPlaying = false;
+  bool isPlaying;
   double volume;
   int length;
   int position;
-  CachedNetworkImageProvider? art;
+  final CachedNetworkImageProvider? art;
+  final Color gradientStart;
+  final Color gradientEnd;
 
   MusicPlayer(
     this._playerObject,
@@ -259,28 +302,23 @@ class MusicPlayer {
     this.length,
     this.volume,
     this.isPlaying,
-    this.position,
-  ) {
+    this.position, {
+    CachedNetworkImageProvider? artProvider,
+    required this.gradientStart,
+    required this.gradientEnd,
+  }) : art = artProvider ?? (artUrl.isNotEmpty ? CachedNetworkImageProvider(artUrl, maxWidth: 256, maxHeight: 256) : null) {
     print("✅ MusicPlayer created:");
     print("   Title: $title");
     print("   Artist: $artist");
     print("   Album: $album");
     print("   Playing: $isPlaying");
     print("   Position: $position / $length seconds");
-    if (artUrl.isNotEmpty) {
-      art = CachedNetworkImageProvider(artUrl, maxWidth: 256, maxHeight: 256);
-    }
   }
 
   // Call D-Bus method helper
   Future<void> _callMethod(String method) async {
     try {
-      await _playerObject.callMethod(
-        'org.mpris.MediaPlayer2.Player',
-        method,
-        [],
-        replySignature: DBusSignature(''),
-      );
+      await _playerObject.callMethod('org.mpris.MediaPlayer2.Player', method, [], replySignature: DBusSignature(''));
     } catch (e) {
       print('Failed to call $method: $e');
     }
@@ -304,11 +342,7 @@ class MusicPlayer {
 
   Future<void> setVolume(double newVolume) async {
     try {
-      await _playerObject.setProperty(
-        'org.mpris.MediaPlayer2.Player',
-        'Volume',
-        DBusDouble(newVolume),
-      );
+      await _playerObject.setProperty('org.mpris.MediaPlayer2.Player', 'Volume', DBusDouble(newVolume));
       volume = newVolume;
     } catch (e) {
       print('Failed to set volume: $e');
@@ -324,10 +358,7 @@ class MusicPlayer {
 
       final clampedPosition = positionSeconds.clamp(0, length).toInt();
 
-      await _playerObject.callMethod('org.mpris.MediaPlayer2.Player', 'SetPosition', [
-        DBusObjectPath(trackId),
-        DBusInt64(clampedPosition * 1000000),
-      ], replySignature: DBusSignature(''));
+      await _playerObject.callMethod('org.mpris.MediaPlayer2.Player', 'SetPosition', [DBusObjectPath(trackId), DBusInt64(clampedPosition * 1000000)], replySignature: DBusSignature(''));
 
       position = clampedPosition;
     } catch (e) {

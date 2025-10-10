@@ -7,12 +7,7 @@ class MusicControls extends StatelessWidget {
   final VoidCallback updatePlayerData;
   final MusicPlayer playerData;
   final MusicInfoCallback positionChanged;
-  const MusicControls({
-    super.key,
-    required this.playerData,
-    required this.updatePlayerData,
-    required this.positionChanged,
-  });
+  const MusicControls({super.key, required this.playerData, required this.updatePlayerData, required this.positionChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -71,11 +66,7 @@ class MusicControls extends StatelessWidget {
                 inactiveTrackColor: SliderTheme.of(context).inactiveTrackColor,
                 trackShape: const RoundedRectSliderTrackShape(),
               ),
-              child: Slider(
-                value: playerData.position.toDouble().clamp(0, playerData.length.toDouble()),
-                max: playerData.length.toDouble(),
-                onChanged: positionChanged,
-              ),
+              child: Slider(value: playerData.position.toDouble().clamp(0, playerData.length.toDouble()), max: playerData.length.toDouble(), onChanged: positionChanged),
             ),
           ],
         ),
