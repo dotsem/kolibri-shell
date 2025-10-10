@@ -18,6 +18,7 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
   Color? dominantColor;
   Color? contrastColor;
   ImageProvider? lastProcessedImage;
+  double? _pendingSeek;
 
   Color _getContrastColor(Color backgroundColor) {
     // Calculate relative luminance
@@ -80,6 +81,17 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
               _extractDominantColor(playerData.art!);
             }
 
+            final double maxSeek = playerData.length.toDouble().clamp(1, double.infinity);
+            final double livePosition = playerData.position.toDouble().clamp(0, maxSeek);
+            final double sliderValue = (_pendingSeek ?? livePosition).clamp(0, maxSeek);
+
+            String formatDuration(double seconds) {
+              final int totalSeconds = seconds.isNaN ? 0 : seconds.clamp(0, double.maxFinite).round();
+              final int minutes = totalSeconds ~/ 60;
+              final int remainingSeconds = totalSeconds % 60;
+              return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+            }
+
             final EdgeInsets viewPadding = MediaQuery.of(context).padding;
 
             return Material(
@@ -110,7 +122,7 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
                       children: [
                         const Icon(Icons.volume_up, color: Colors.white),
                         Expanded(
-                          child: Slider(value: playerData.volume.clamp(0.0, 1.0).toDouble(), min: 0, max: 1, onChanged: musicService.setVolume),
+                          child: Slider(value: playerData.volume.clamp(0.0, 1.0).toDouble(), divisions: 100, min: 0, max: 1, onChanged: musicService.setVolume),
                         ),
                         IconButton(
                           color: Colors.white,
@@ -180,11 +192,15 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(_formatDuration(musicService.playerData!.position), style: TextStyle(color: contrastColor)),
+                            Text(formatDuration(sliderValue), style: TextStyle(color: contrastColor)),
                             Slider(
-                              value: musicService.playerData!.position.toDouble(),
-                              max: musicService.playerData!.length.toDouble(),
+                              value: sliderValue,
+                              max: maxSeek,
                               onChanged: (value) {
+                                setState(() => _pendingSeek = value);
+                              },
+                              onChangeEnd: (value) {
+                                setState(() => _pendingSeek = null);
                                 musicService.seek(value);
                               },
                             ),
