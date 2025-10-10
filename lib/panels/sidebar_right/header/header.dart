@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hypr_flutter/panels/sidebar_right/header/hypr_flutter_runner.dart';
 import 'package:hypr_flutter/services/system.dart';
+import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class SidebarRightHeader extends StatefulWidget {
@@ -40,10 +41,8 @@ class SidebarRightHeaderState extends State<SidebarRightHeader> {
           HyprFlutterRunner(),
           IconButton(
             onPressed: () async {
-              if (!await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.settings)) {
-                await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.settings);
-                await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.rightSidebar);
-              }
+              await ShellManager().createSettingsWindow();
+              await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.rightSidebar);
             },
             icon: const Icon(Icons.settings),
           ),

@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:hypr_flutter/config/config.dart' as config;
 import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/hyprland/ctl_models.dart';
 import 'package:hypr_flutter/hyprland/ipc.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/workspaces/active_workspace.dart';
 import 'package:hypr_flutter/services/app_catalog.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
+import 'package:hypr_flutter/services/window_icon_resolver.dart';
 
 class Workspaces extends StatefulWidget {
   final int monitorIndex;
@@ -32,8 +30,7 @@ class _WorkspacesState extends State<Workspaces> {
   int currentWorkspace = 0;
   final double workspaceSize = 30;
   List<_WorkspaceClient> occupiedWorkspaces = List<_WorkspaceClient>.generate(10, (_) => const _WorkspaceClient(), growable: false);
-  final Map<String, String?> _iconPathCache = <String, String?>{};
-  final Map<String, Widget?> _iconWidgetCache = <String, Widget?>{};
+  final WindowIconResolver _iconResolver = WindowIconResolver.instance;
 
   void initState() {
     super.initState();
@@ -77,16 +74,12 @@ class _WorkspacesState extends State<Workspaces> {
           continue;
         }
 
-        String? iconPath = _iconPathCache[clientClass];
-        if (iconPath == null) {
-          iconPath = await _catalog.iconPathForStartupClass(clientClass);
-          _iconPathCache[clientClass] = iconPath;
-        }
-
-        nextState[workspaceIndex] = _WorkspaceClient(name: clientClass, iconPath: iconPath);
+        final WindowIconData iconData = await _iconResolver.resolve(clientClass);
+        nextState[workspaceIndex] = _WorkspaceClient(name: clientClass, iconData: iconData);
         handledWorkspaceIds.add(id);
       }
     }
+    if (!mounted) return;
     setState(() {
       occupiedWorkspaces = nextState;
     });
@@ -199,19 +192,8 @@ class _WorkspacesState extends State<Workspaces> {
       return _WorkspaceLabel(index: workspaceIndex, color: labelColor);
     }
 
-    final String? iconPath = client.iconPath;
-    if (iconPath != null && iconPath.isNotEmpty) {
-      final String cacheKey = iconPath;
-      Widget? iconWidget = _iconWidgetCache[cacheKey];
-      iconWidget ??= _buildIconWidget(iconPath);
-      if (iconWidget != null) {
-        _iconWidgetCache[cacheKey] = iconWidget;
-        return iconWidget;
-      }
-      debugPrint('Workspace icon fallback triggered for $name: path=$iconPath');
-    }
-
-    return _WorkspaceAppPlaceholder(color: labelColor);
+    final WindowIconData iconData = client.iconData ?? WindowIconData.empty;
+    return _iconResolver.buildIcon(iconData, size: workspaceSize - 10, borderRadius: 12, fallbackColor: labelColor);
   }
 }
 
@@ -228,44 +210,12 @@ class _WorkspaceLabel extends StatelessWidget {
 }
 
 class _WorkspaceClient {
-  const _WorkspaceClient({this.name, this.iconPath});
+  const _WorkspaceClient({this.name, this.iconData});
 
   final String? name;
-  final String? iconPath;
+  final WindowIconData? iconData;
 
-  _WorkspaceClient copyWith({String? name, String? iconPath}) {
-    return _WorkspaceClient(name: name ?? this.name, iconPath: iconPath ?? this.iconPath);
+  _WorkspaceClient copyWith({String? name, WindowIconData? iconData}) {
+    return _WorkspaceClient(name: name ?? this.name, iconData: iconData ?? this.iconData);
   }
-}
-
-class _WorkspaceAppPlaceholder extends StatelessWidget {
-  const _WorkspaceAppPlaceholder({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Icon(Icons.apps, color: color, size: 18);
-  }
-}
-
-Widget? _buildIconWidget(String iconPath) {
-  final file = File(iconPath);
-  if (!file.existsSync()) {
-    debugPrint('Workspace icon path missing: $iconPath');
-    return null;
-  }
-
-  final lower = iconPath.toLowerCase();
-  if (lower.endsWith('.svg') || lower.endsWith('.svgz')) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SvgPicture.file(file, width: 20, height: 20, fit: BoxFit.contain),
-    );
-  }
-
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(12),
-    child: Image.file(file, width: 20, height: 20, fit: BoxFit.contain),
-  );
 }

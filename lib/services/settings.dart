@@ -16,10 +16,36 @@ class SettingsKeys {
   static const SettingKey<bool> expandCpuSection = SettingKey<bool>('system.cpu.expand', defaultValue: false);
 
   static const SettingKey<String> codeEditors = SettingKey<String>('code_editor.available', defaultValue: '{"vscode": "code", "windsurf": "windsurf"}');
-
   static const SettingKey<String> preferredCodeEditor = SettingKey<String>('code_editor.preferred', defaultValue: "windsurf");
 
-  static const List<SettingKey<dynamic>> all = <SettingKey<dynamic>>[visibleDisks, expandCpuSection, codeEditors, preferredCodeEditor];
+  static const SettingKey<bool> darkModeEnabled = SettingKey<bool>('appearance.dark_mode', defaultValue: true);
+
+  static const SettingKey<bool> enableBlur = SettingKey<bool>('appearance.enable_blur', defaultValue: true);
+  static const SettingKey<int> primaryColor = SettingKey<int>('appearance.primary_color', defaultValue: 0xFF1E88E5);
+  static const SettingKey<int> accentColor = SettingKey<int>('appearance.accent_color', defaultValue: 0xFFFFB300);
+  static const SettingKey<int> backgroundColor = SettingKey<int>('appearance.background_color', defaultValue: 0xFF121212);
+  static const SettingKey<int> containerColor = SettingKey<int>('appearance.container_color', defaultValue: 0xFF1F1F1F);
+  static const SettingKey<double> taskbarOpacity = SettingKey<double>('taskbar.opacity', defaultValue: 0.9);
+  static const SettingKey<bool> showSecondsOnClock = SettingKey<bool>('taskbar.clock.show_seconds', defaultValue: false);
+  static const SettingKey<String> navbarPosition = SettingKey<String>('layout.navbar_position', defaultValue: 'top');
+  static const SettingKey<String> monitorConfiguration = SettingKey<String>('display.monitor_configuration', defaultValue: '[]');
+
+  static const List<SettingKey<dynamic>> all = <SettingKey<dynamic>>[
+    visibleDisks,
+    expandCpuSection,
+    codeEditors,
+    preferredCodeEditor,
+    darkModeEnabled,
+    enableBlur,
+    primaryColor,
+    accentColor,
+    backgroundColor,
+    containerColor,
+    taskbarOpacity,
+    showSecondsOnClock,
+    navbarPosition,
+    monitorConfiguration,
+  ];
 }
 
 class SettingsService {

@@ -11,7 +11,8 @@ class ShellManager {
   static final ShellManager _instance = ShellManager._internal();
   factory ShellManager() => _instance;
 
-  final List<String> _createdWindows = [];
+  final Set<String> _createdWindows = <String>{};
+  final Map<String, Future<void>> _creationInFlight = <String, Future<void>>{};
   bool _isInitialized = false;
 
   ShellManager._internal();
@@ -86,7 +87,7 @@ class ShellManager {
   Future<void> createTaskbar({required int monitorIndex}) async {
     final windowId = "taskbar_$monitorIndex";
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Taskbar-$monitorIndex", isLayer: true, width: 1920, height: 48, args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"]);
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Taskbar-$monitorIndex", isLayer: true, width: 1000, height: taskbarHeight, args: ["--class=taskbar", "--name=$windowId", "--window-type=taskbar"]);
     await FlLinuxWindowManager.instance.enableLayerAutoExclusive(windowId: windowId);
     await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value, windowId: windowId);
     await FlLinuxWindowManager.instance.setMonitor(monitorId: monitorIndex, windowId: windowId);
@@ -111,7 +112,7 @@ class ShellManager {
   Future<void> createRightSidebar() async {
     const windowId = WindowIds.rightSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: 500, height: 1018, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"]);
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: 500, height: 500, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=right"]);
     await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
     await FlLinuxWindowManager.instance.setLayerMargin(top: 8, left: 8, right: 8, bottom: 8, windowId: windowId);
@@ -124,9 +125,10 @@ class ShellManager {
   Future<void> createMusicPlayer() async {
     const windowId = WindowIds.musicPlayer;
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Right Sidebar", isLayer: true, width: musicPlayerWidth, height: 100, args: ["--class=musicPlayer", "--name=$windowId", "--window-type=popup"]);
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Music player", isLayer: true, width: musicPlayerWidth, height: musicPlayerWidth, args: ["--class=musicPlayer", "--name=$windowId", "--window-type=popup"]);
     await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
+
     await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
@@ -136,11 +138,57 @@ class ShellManager {
   Future<void> createSettingsWindow() async {
     const windowId = WindowIds.settings;
 
+    await ensureSettingsWindow();
+
+    try {
+      await FlLinuxWindowManager.instance.showWindow(windowId: windowId);
+    } catch (_) {}
+
+    try {
+      await FlLinuxWindowManager.instance.setFocus(windowId: windowId);
+    } catch (_) {}
+  }
+
+  Future<void> ensureSettingsWindow() async {
+    const windowId = WindowIds.settings;
+
+    if (await _isWindowReady(windowId)) {
+      return;
+    }
+
+    if (_creationInFlight.containsKey(windowId)) {
+      return _creationInFlight[windowId];
+    }
+
+    final Future<void> creation = _createSettingsWindowInternal(windowId);
+    _creationInFlight[windowId] = creation;
+
+    try {
+      await creation;
+    } finally {
+      _creationInFlight.remove(windowId);
+    }
+  }
+
+  Future<void> _createSettingsWindowInternal(String windowId) async {
     await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Settings", isLayer: false, width: 800, height: 600, args: ["--class=settings", "--name=$windowId", "--window-type=window"]);
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
+    // await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: true, windowId: windowId);
 
     await _createSharedChannel(windowId);
+    _createdWindows.add(windowId);
+  }
+
+  Future<bool> _isWindowReady(String windowId) async {
+    if (_createdWindows.contains(windowId)) {
+      return true;
+    }
+
+    final bool exists = await FlLinuxWindowManager.instance.isWindowIdUsed(windowId);
+    if (exists) {
+      _createdWindows.add(windowId);
+    }
+    return exists;
   }
 
   Future<void> createMenu() async {

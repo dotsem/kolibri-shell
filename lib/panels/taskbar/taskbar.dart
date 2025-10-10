@@ -5,6 +5,7 @@ import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
+import 'package:hypr_flutter/data.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/center/active_window.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/systray/battery.dart';
@@ -43,7 +44,7 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
           if (context != null && windowUsed) {
             final box = context.findRenderObject() as RenderBox;
             final position = box.localToGlobal(Offset.zero);
-            FlLinuxWindowManager.instance.setLayerMargin(left: position.dx.toInt(), windowId: WindowIds.musicPlayer);
+            FlLinuxWindowManager.instance.setLayerMargin(left: position.dx.toInt(), top: -taskbarHeight, windowId: WindowIds.musicPlayer);
             break;
           }
 

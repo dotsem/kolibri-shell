@@ -3,6 +3,8 @@ import 'package:hypr_flutter/panels/music_player/music_player.dart';
 import 'package:hypr_flutter/panels/sidebar_left/sidebar_left.dart';
 import 'package:hypr_flutter/panels/sidebar_right/sidebar_right.dart';
 import 'package:hypr_flutter/panels/taskbar/taskbar.dart';
+import 'package:hypr_flutter/windows/settings/settings_window.dart';
+import 'package:hypr_flutter/window_ids.dart';
 
 class ShellRouter extends StatelessWidget {
   final List<String> args;
@@ -23,6 +25,11 @@ class ShellRouter extends StatelessWidget {
         return RightSidebarWidget();
       case 'music_player':
         return MusicPlayerWidget();
+      case 'settings':
+        return const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: SettingsWindow(),
+        );
       default:
         return TaskbarWidget(windowId: windowId, monitorIndex: _getMonitorIndex()); // Default to taskbar for main window
     }
@@ -34,6 +41,8 @@ class ShellRouter extends StatelessWidget {
       if (args.contains('--position=right')) return 'right_sidebar';
     } else if (args.contains('--window-type=popup')) {
       if (args.contains('--class=musicPlayer')) return 'music_player';
+    } else if (args.contains('--class=settings') || args.contains('--name=${WindowIds.settings}')) {
+      return 'settings';
     }
     return 'taskbar'; // Default
   }

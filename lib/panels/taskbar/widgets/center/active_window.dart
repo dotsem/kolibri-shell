@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/hyprland/ipc.dart';
+import 'package:hypr_flutter/services/window_icon_resolver.dart';
 
 class ActiveWindow extends StatefulWidget {
   const ActiveWindow({super.key});
@@ -15,6 +16,8 @@ class _ActiveWindowState extends State<ActiveWindow> {
   StreamSubscription<HyprlandEvent>? _windowTitleSubscription;
   String appName = "None";
   String windowTitle = "None";
+  WindowIconData _iconData = WindowIconData.empty;
+  final WindowIconResolver _iconResolver = WindowIconResolver.instance;
 
   @override
   void initState() {
@@ -29,9 +32,15 @@ class _ActiveWindowState extends State<ActiveWindow> {
   }
 
   void _updateWindowTitle(HyprlandEvent event) {
-    setState(() {
-      appName = event.data[0];
-      windowTitle = event.data[1];
+    final String updatedAppName = event.data[0];
+    final String updatedTitle = event.data[1];
+    _iconResolver.resolve(updatedAppName).then((icon) {
+      if (!mounted) return;
+      setState(() {
+        appName = updatedAppName;
+        windowTitle = updatedTitle;
+        _iconData = icon;
+      });
     });
   }
 
@@ -42,11 +51,27 @@ class _ActiveWindowState extends State<ActiveWindow> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final Color headingColor = Theme.of(context).colorScheme.scrim;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(appName, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim)),
-        Text(windowTitle),
+        _iconResolver.buildIcon(
+          _iconData,
+          size: 28,
+          borderRadius: 8,
+          fallbackIcon: Icons.apps,
+          fallbackColor: headingColor,
+        ),
+        const SizedBox(width: 8),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(appName, style: TextStyle(fontSize: 10, color: headingColor), overflow: TextOverflow.ellipsis),
+            Text(windowTitle, overflow: TextOverflow.ellipsis),
+          ],
+        ),
       ],
     );
   }
