@@ -19,6 +19,7 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
   Color? contrastColor;
   ImageProvider? lastProcessedImage;
   double? _pendingSeek;
+  double? _pendingVolume;
 
   Color _getContrastColor(Color backgroundColor) {
     // Calculate relative luminance
@@ -85,6 +86,9 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
             final double livePosition = playerData.position.toDouble().clamp(0, maxSeek);
             final double sliderValue = (_pendingSeek ?? livePosition).clamp(0, maxSeek);
 
+            final double liveVolume = playerData.volume.clamp(0.0, 1.0);
+            final double volumeValue = (_pendingVolume ?? liveVolume).clamp(0.0, 1.0);
+
             String formatDuration(double seconds) {
               final int totalSeconds = seconds.isNaN ? 0 : seconds.clamp(0, double.maxFinite).round();
               final int minutes = totalSeconds ~/ 60;
@@ -122,7 +126,19 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
                       children: [
                         const Icon(Icons.volume_up, color: Colors.white),
                         Expanded(
-                          child: Slider(value: playerData.volume.clamp(0.0, 1.0).toDouble(), divisions: 100, min: 0, max: 1, onChanged: musicService.setVolume),
+                          child: Slider(
+                            value: volumeValue,
+                            divisions: 100,
+                            min: 0,
+                            max: 1,
+                            onChanged: (value) {
+                              setState(() => _pendingVolume = value);
+                            },
+                            onChangeEnd: (value) {
+                              setState(() => _pendingVolume = null);
+                              musicService.setVolume(value);
+                            },
+                          ),
                         ),
                         IconButton(
                           color: Colors.white,
@@ -146,7 +162,7 @@ class _MusicPlayerWidgetState extends State<MusicPlayerWidget> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          playerData.artist.toString(),
+                          playerData.artist.join(' · '),
                           style: TextStyle(color: contrastColor),
                           textAlign: TextAlign.center,
                         ),

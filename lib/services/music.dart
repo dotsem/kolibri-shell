@@ -198,12 +198,22 @@ class MusicService extends ChangeNotifier {
     final value = metadata[DBusString(key)];
     if (value == null) return [];
 
-    // Unwrap variant if needed
-    final unwrapped = value is DBusVariant ? value.value : value;
-    if (unwrapped is DBusArray) {
-      return unwrapped.children.map((e) => (e as DBusString).value).toList();
+    return _extractStringsFromValue(value);
+  }
+
+  List<String> _extractStringsFromValue(DBusValue value) {
+    final DBusValue unwrapped = value is DBusVariant ? value.value : value;
+    if (unwrapped is DBusString) {
+      return <String>[unwrapped.value];
     }
-    return [];
+    if (unwrapped is DBusArray) {
+      final List<String> results = <String>[];
+      for (final DBusValue entry in unwrapped.children) {
+        results.addAll(_extractStringsFromValue(entry));
+      }
+      return results;
+    }
+    return const <String>[];
   }
 
   // Helper to extract int from metadata (handles DBusVariant)

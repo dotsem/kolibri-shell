@@ -277,13 +277,13 @@ class DisplayManagerService extends ChangeNotifier {
   Future<void> _applyMonitorConfiguration(List<MonitorLayout> monitors) async {
     final List<Monitor> currentMonitors = await hyprCtl.getMonitors();
     final Set<String> targetedMonitors = <String>{};
-    final List<Future<void> Function()> commandQueue = <Future<void> Function()>[];
+    final List<String> commands = <String>[];
 
     for (final MonitorLayout monitor in monitors) {
       targetedMonitors.add(monitor.name);
 
       if (!monitor.enabled) {
-        commandQueue.add(() => _runHyprctl(<String>['keyword', 'monitor', '${monitor.name},disable']));
+        commands.add('keyword monitor ${monitor.name},disable');
         continue;
       }
 
@@ -291,9 +291,9 @@ class DisplayManagerService extends ChangeNotifier {
         final String? source = monitor.mirrorSource;
         if (source == null || source.isEmpty) {
           _log('Monitor ${monitor.name} requested mirror mode but no source provided. Disabling.');
-          commandQueue.add(() => _runHyprctl(<String>['keyword', 'monitor', '${monitor.name},disable']));
+          commands.add('keyword monitor ${monitor.name},disable');
         } else {
-          commandQueue.add(() => _runHyprctl(<String>['keyword', 'monitor', '${monitor.name},mirror,$source']));
+          commands.add('keyword monitor ${monitor.name},mirror,$source');
         }
         continue;
       }
@@ -301,18 +301,17 @@ class DisplayManagerService extends ChangeNotifier {
       final String refresh = _formatRefreshRate(monitor.refreshRate);
       final String offset = '${monitor.x}x${monitor.y}';
       final String scale = monitor.scale.toStringAsFixed(2);
-      final String spec = '${monitor.name},${monitor.width}x${monitor.height}@$refresh,$offset,$scale';
-      commandQueue.add(() => _runHyprctl(<String>['keyword', 'monitor', spec]));
+      commands.add('keyword monitor ${monitor.name},${monitor.width}x${monitor.height}@$refresh,$offset,$scale');
     }
 
     for (final Monitor monitor in currentMonitors) {
       if (!targetedMonitors.contains(monitor.name)) {
-        commandQueue.add(() => _runHyprctl(<String>['keyword', 'monitor', '${monitor.name},disable']));
+        commands.add('keyword monitor ${monitor.name},disable');
       }
     }
 
-    for (final Future<void> Function() command in commandQueue) {
-      await command();
+    if (commands.isNotEmpty) {
+      await _runHyprctlBatch(commands);
     }
 
     MonitorLayout? primary;
@@ -343,6 +342,21 @@ class DisplayManagerService extends ChangeNotifier {
       throw DisplayManagerException(
         'hyprctl failed with exit code ${result.exitCode}: ${result.stderr}'.trim(),
         command: <String>['hyprctl', ...args],
+        stderr: result.stderr is String ? result.stderr as String : result.stderr?.toString(),
+      );
+    }
+  }
+
+  Future<void> _runHyprctlBatch(List<String> commands) async {
+    if (commands.isEmpty) {
+      return;
+    }
+    final String payload = commands.join('; ');
+    final ProcessResult result = await Process.run('hyprctl', <String>['--batch', payload]);
+    if (result.exitCode != 0) {
+      throw DisplayManagerException(
+        'hyprctl --batch failed with exit code ${result.exitCode}: ${result.stderr}'.trim(),
+        command: <String>['hyprctl', '--batch', payload],
         stderr: result.stderr is String ? result.stderr as String : result.stderr?.toString(),
       );
     }

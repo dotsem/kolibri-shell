@@ -20,7 +20,7 @@ class MusicInfo extends StatelessWidget {
             SizedBox(
               height: 24,
               child: Text(
-                "${playerData.title} · ${playerData.artist.first}",
+                "${playerData.title} · ${playerData.artist.join(' · ')}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color, fontWeight: FontWeight.w600),

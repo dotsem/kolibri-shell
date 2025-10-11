@@ -195,10 +195,12 @@ class _HyprFlutterRunnerState extends State<HyprFlutterRunner> {
         : Row(
             children: [
               IconButton(
+                tooltip: "Reload Shell",
                 onPressed: (_isReloading || _isCompiling) ? null : _reloadHyprFlutter,
                 icon: _isReloading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
               ),
               IconButton(
+                tooltip: "Start Developing",
                 onPressed: (_isReloading || _isCompiling || _isDebugging) ? null : _debugHyprFlutter,
                 icon: _isDebugging ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.bug_report),
               ),
