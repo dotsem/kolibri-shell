@@ -40,13 +40,14 @@ class SidebarRightHeaderState extends State<SidebarRightHeader> {
           const Spacer(),
           HyprFlutterRunner(),
           IconButton(
+            tooltip: "Settings",
             onPressed: () async {
               await ShellManager().createSettingsWindow();
               await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.rightSidebar);
             },
             icon: const Icon(Icons.settings),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.power_settings_new_outlined)),
+          IconButton(tooltip: "Power Settings", onPressed: () {}, icon: const Icon(Icons.power_settings_new_outlined)),
         ],
       ),
     );
