@@ -29,6 +29,9 @@ class SettingsKeys {
   static const SettingKey<bool> showSecondsOnClock = SettingKey<bool>('taskbar.clock.show_seconds', defaultValue: false);
   static const SettingKey<String> navbarPosition = SettingKey<String>('layout.navbar_position', defaultValue: 'top');
   static const SettingKey<String> monitorConfiguration = SettingKey<String>('display.monitor_configuration', defaultValue: '[]');
+  static const SettingKey<bool> showVpnTab = SettingKey<bool>('sidebar.show_vpn_tab', defaultValue: true);
+  static const SettingKey<String> vpnConfigs = SettingKey<String>('vpn.configs', defaultValue: '[]');
+  static const SettingKey<String> activeVpnConfig = SettingKey<String>('vpn.active_config', defaultValue: '');
 
   static const List<SettingKey<dynamic>> all = <SettingKey<dynamic>>[
     visibleDisks,
@@ -45,6 +48,9 @@ class SettingsKeys {
     showSecondsOnClock,
     navbarPosition,
     monitorConfiguration,
+    showVpnTab,
+    vpnConfigs,
+    activeVpnConfig,
   ];
 }
 

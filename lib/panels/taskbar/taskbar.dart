@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
-import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:hypr_flutter/config/theme/theme.dart';
@@ -56,8 +55,8 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return InputRegion.negative(
-      windowId: widget.windowId,
+    return FocusScope(
+      canRequestFocus: true,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: theme,

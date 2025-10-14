@@ -7,6 +7,7 @@ import 'package:hypr_flutter/windows/settings/widgets/color_selector.dart';
 import 'package:hypr_flutter/windows/settings/widgets/display_manager_page.dart';
 import 'package:hypr_flutter/windows/settings/widgets/settings_section.dart';
 import 'package:hypr_flutter/windows/settings/widgets/toggles.dart';
+import 'package:hypr_flutter/windows/settings/widgets/vpn_settings_section.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class SettingsWindow extends StatefulWidget {
@@ -202,6 +203,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
             ),
           ],
         ),
+        const VpnSettingsSection(),
       ],
     );
   }

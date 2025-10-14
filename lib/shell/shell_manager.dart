@@ -118,6 +118,7 @@ class ShellManager {
     await FlLinuxWindowManager.instance.setLayerMargin(top: 8, left: 8, right: 8, bottom: 8, windowId: windowId);
     await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
 
     await _createSharedChannel(windowId);
   }
