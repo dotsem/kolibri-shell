@@ -117,7 +117,7 @@ class _MusicPanelState extends State<MusicPanel> {
                       Theme(
                         data: Theme.of(context).copyWith(
                           textTheme: contrastColor != null ? Theme.of(context).textTheme.apply(bodyColor: contrastColor, displayColor: contrastColor) : Theme.of(context).textTheme,
-                          sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: contrastColor, inactiveTrackColor: contrastColor) : Theme.of(context).sliderTheme,
+                          sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: Theme.of(context).colorScheme.primary, inactiveTrackColor: contrastColor) : Theme.of(context).sliderTheme,
                           iconButtonTheme: contrastColor != null ? IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: contrastColor)) : Theme.of(context).iconButtonTheme,
                         ),
                         child: Row(
