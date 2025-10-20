@@ -100,9 +100,10 @@ class ShellManager {
   Future<void> createLeftSidebar() async {
     const windowId = WindowIds.leftSidebar;
 
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Left Sidebar", isLayer: true, width: 200, height: 1032, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"]);
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Left Sidebar", isLayer: true, width: 500, height: 500, args: ["--class=sidebar", "--name=$windowId", "--window-type=sidebar", "--position=left"]);
     await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.bottom.value, windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
+    await FlLinuxWindowManager.instance.setLayerMargin(top: 8, left: 8, right: 8, bottom: 8, windowId: windowId);
     await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
