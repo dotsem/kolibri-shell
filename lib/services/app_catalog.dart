@@ -262,7 +262,7 @@ class AppCatalogService extends ChangeNotifier {
       if (!directory.existsSync()) continue;
 
       try {
-        await for (final entity in directory.list(recursive: true, followLinks: false)) {
+        await for (final entity in directory.list(recursive: true, followLinks: true)) {
           if (entity is! File || !entity.path.endsWith('.desktop')) continue;
           if (!visited.add(entity.path)) continue;
 
