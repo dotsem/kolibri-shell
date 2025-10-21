@@ -89,7 +89,10 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
 
                 Align(
                   alignment: Alignment.center,
-                  child: Padding(padding: const EdgeInsets.only(left: 2, right: 2, bottom: 2), child: ActiveWindow(width: 500)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 2, right: 2, bottom: 2),
+                    child: ActiveWindow(width: 500, monitorIndex: widget.monitorIndex),
+                  ),
                 ),
 
                 Positioned(
