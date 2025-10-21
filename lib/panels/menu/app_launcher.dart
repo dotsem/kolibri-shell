@@ -2,6 +2,8 @@ import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/services/app_launcher_service.dart';
+import 'package:hypr_flutter/services/favorite_apps_service.dart';
+import 'package:hypr_flutter/services/hidden_apps_service.dart';
 import 'package:hypr_flutter/services/window_icon_resolver.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
@@ -16,6 +18,8 @@ class AppLauncher extends StatefulWidget {
 
 class _AppLauncherState extends State<AppLauncher> {
   final AppLauncherService _launcherService = AppLauncherService();
+  final HiddenAppsService _hiddenAppsService = HiddenAppsService();
+  final FavoriteAppsService _favoriteAppsService = FavoriteAppsService();
   final WindowIconResolver _iconResolver = WindowIconResolver.instance;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -159,17 +163,31 @@ class _AppLauncherState extends State<AppLauncher> {
     final theme = Theme.of(context);
 
     return Focus(
-      autofocus: true,
+      autofocus: false,
+      skipTraversal: true,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
           return KeyEventResult.ignored;
         }
 
-        // Only handle navigation keys and Enter/Escape
-        // Let everything else pass through to TextField
         final key = event.logicalKey;
-        if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter || key == LogicalKeyboardKey.escape) {
+
+        // Always handle Escape to close menu
+        if (key == LogicalKeyboardKey.escape) {
           _handleKeyEvent(event);
+          return KeyEventResult.handled;
+        }
+
+        // Handle navigation keys (arrows and Enter) only if they're not being used in TextField
+        // This allows arrow keys to navigate the list while typing still works in TextField
+        if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+          _handleKeyEvent(event);
+          // Keep TextField focused after navigation
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_searchFocusNode.hasFocus) {
+              _searchFocusNode.requestFocus();
+            }
+          });
           return KeyEventResult.handled;
         }
 
@@ -180,29 +198,46 @@ class _AppLauncherState extends State<AppLauncher> {
           // Search bar
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              autofocus: true,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search applications...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _launcherService.clearSearch();
-                            _selectedIndex = 0; // Reset selection when clearing search
-                          });
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    autofocus: true,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search applications...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _launcherService.clearSearch();
+                                  _selectedIndex = 0; // Reset selection when clearing search
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Master eye toggle
+                IconButton(
+                  icon: Icon(_hiddenAppsService.showHiddenApps ? Icons.visibility : Icons.visibility_off, color: _hiddenAppsService.hiddenCount > 0 ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.6)),
+                  tooltip: _hiddenAppsService.showHiddenApps ? 'Hide hidden apps' : 'Show hidden apps (${_hiddenAppsService.hiddenCount})',
+                  onPressed: () {
+                    setState(() {
+                      _hiddenAppsService.toggleShowHidden();
+                    });
+                  },
+                ),
+              ],
             ),
           ),
 
@@ -238,9 +273,28 @@ class _AppLauncherState extends State<AppLauncher> {
   }
 
   Widget _buildAppTile(LaunchableApp app, ThemeData theme, bool isSelected) {
+    final isHidden = _hiddenAppsService.isHidden(app.app.id);
+    final isFavorite = _favoriteAppsService.isFavorite(app.app.id);
+
     return ListTile(
       leading: _iconResolver.buildIcon(app.iconData, size: 40, borderRadius: 8, fallbackIcon: Icons.apps),
-      title: Text(app.app.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(app.app.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+          ),
+          // Favorite star icon
+          IconButton(
+            icon: Icon(isFavorite ? Icons.star : Icons.star_border, size: 20, color: isFavorite ? Colors.amber : theme.colorScheme.onSurface.withOpacity(0.6)),
+            tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+            onPressed: () {
+              setState(() {
+                _favoriteAppsService.toggleAppFavorite(app.app.id);
+              });
+            },
+          ),
+        ],
+      ),
       subtitle: app.app.comment != null
           ? Text(
               app.app.comment!,
@@ -249,6 +303,15 @@ class _AppLauncherState extends State<AppLauncher> {
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
             )
           : null,
+      trailing: IconButton(
+        icon: Icon(isHidden ? Icons.visibility_off : Icons.visibility, size: 20),
+        tooltip: isHidden ? 'Show this app' : 'Hide this app',
+        onPressed: () {
+          setState(() {
+            _hiddenAppsService.toggleAppHidden(app.app.id);
+          });
+        },
+      ),
       selected: isSelected,
       selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
       onTap: () {

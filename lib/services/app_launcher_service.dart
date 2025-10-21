@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:hypr_flutter/services/app_catalog.dart';
+import 'package:hypr_flutter/services/favorite_apps_service.dart';
+import 'package:hypr_flutter/services/hidden_apps_service.dart';
 import 'package:hypr_flutter/services/window_icon_resolver.dart';
 
 /// Represents a launchable application with its icon data.
@@ -45,6 +47,8 @@ class AppLauncherService extends ChangeNotifier {
   factory AppLauncherService() => _instance;
 
   final AppCatalogService _catalog = AppCatalogService();
+  final HiddenAppsService _hiddenAppsService = HiddenAppsService();
+  final FavoriteAppsService _favoriteAppsService = FavoriteAppsService();
 
   bool _initialized = false;
   bool _isLoading = false;
@@ -58,17 +62,28 @@ class AppLauncherService extends ChangeNotifier {
 
   /// Returns the current list of apps (filtered if a search query is active).
   List<LaunchableApp> get apps {
-    if (_searchQuery.isEmpty) {
-      return _apps;
-    }
     return _filteredApps ?? _apps;
   }
 
   /// Initialize the service by loading all applications.
   Future<void> initialize() async {
     if (_initialized) return;
+    await _hiddenAppsService.loadConfig();
+    await _favoriteAppsService.loadConfig();
+    _hiddenAppsService.addListener(_onHiddenAppsChanged);
+    _favoriteAppsService.addListener(_onFavoriteAppsChanged);
     await refresh();
     _initialized = true;
+  }
+
+  void _onHiddenAppsChanged() {
+    _applyFilter();
+    notifyListeners();
+  }
+
+  void _onFavoriteAppsChanged() {
+    _applyFilter();
+    notifyListeners();
   }
 
   /// Refresh the list of available applications.
@@ -130,33 +145,66 @@ class AppLauncherService extends ChangeNotifier {
     if (_searchQuery.isEmpty) return;
 
     _searchQuery = '';
-    _filteredApps = null;
+    _applyFilter(); // Re-apply filter to show non-hidden apps
     notifyListeners();
   }
 
   void _applyFilter() {
+    final showHidden = _hiddenAppsService.showHiddenApps;
+
+    // Filter by hidden state first
+    List<LaunchableApp> visibleApps = _apps.where((app) {
+      final isHidden = _hiddenAppsService.isHidden(app.app.id);
+      return showHidden || !isHidden;
+    }).toList();
+
     if (_searchQuery.isEmpty) {
-      _filteredApps = null;
+      // Sort: favorites first, then alphabetically
+      visibleApps.sort((a, b) {
+        final aFav = _favoriteAppsService.isFavorite(a.app.id);
+        final bFav = _favoriteAppsService.isFavorite(b.app.id);
+
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+
+        return a.app.name.toLowerCase().compareTo(b.app.name.toLowerCase());
+      });
+
+      _filteredApps = visibleApps;
       return;
     }
 
     final lowerQuery = _searchQuery.toLowerCase();
-    final List<LaunchableApp> filtered = [];
+    final List<LaunchableApp> favoriteStartsWith = [];
+    final List<LaunchableApp> favoriteContains = [];
     final List<LaunchableApp> startsWithMatches = [];
     final List<LaunchableApp> containsMatches = [];
 
-    for (final app in _apps) {
+    for (final app in visibleApps) {
       final nameLower = app.app.name.toLowerCase();
+      final isFavorite = _favoriteAppsService.isFavorite(app.app.id);
 
       if (nameLower.startsWith(lowerQuery)) {
-        startsWithMatches.add(app);
+        if (isFavorite) {
+          favoriteStartsWith.add(app);
+        } else {
+          startsWithMatches.add(app);
+        }
       } else if (app.matches(_searchQuery)) {
-        containsMatches.add(app);
+        if (isFavorite) {
+          favoriteContains.add(app);
+        } else {
+          containsMatches.add(app);
+        }
       }
     }
 
-    // Prioritize apps whose names start with the query
+    // Prioritize: 1. Favorite apps starting with query, 2. Non-favorite starting with query
+    // 3. Favorite apps containing query, 4. Non-favorite containing query
+    final List<LaunchableApp> filtered = [];
+    filtered.addAll(favoriteStartsWith);
     filtered.addAll(startsWithMatches);
+    filtered.addAll(favoriteContains);
     filtered.addAll(containsMatches);
 
     _filteredApps = filtered;
@@ -174,7 +222,9 @@ class AppLauncherService extends ChangeNotifier {
 
       final command = parts.first;
       final args = parts.length > 1 ? parts.sublist(1) : <String>[];
-
+      _searchQuery = '';
+      _applyFilter(); // Re-apply filter to show non-hidden apps
+      notifyListeners();
       // Launch the process in detached mode
       await Process.start(command, args, mode: ProcessStartMode.detached);
 

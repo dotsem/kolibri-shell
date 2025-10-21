@@ -18,3 +18,5 @@ String get vpnConfigPath => path.join(configDirectory, 'vpn.json');
 String get systemConfigPath => path.join(configDirectory, 'system.json');
 String get displayConfigPath => path.join(configDirectory, 'display.json');
 String get generalConfigPath => path.join(configDirectory, 'general.json');
+String get hiddenAppsConfigPath => path.join(configDirectory, 'hidden_apps.json');
+String get favoriteAppsConfigPath => path.join(configDirectory, 'favorite_apps.json');
