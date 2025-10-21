@@ -6,7 +6,9 @@ import 'package:hypr_flutter/services/window_icon_resolver.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class AppLauncher extends StatefulWidget {
-  const AppLauncher({super.key});
+  final void Function(KeyEvent)? onKeyEvent;
+
+  const AppLauncher({super.key, this.onKeyEvent});
 
   @override
   State<AppLauncher> createState() => _AppLauncherState();
@@ -16,7 +18,6 @@ class _AppLauncherState extends State<AppLauncher> {
   final AppLauncherService _launcherService = AppLauncherService();
   final WindowIconResolver _iconResolver = WindowIconResolver.instance;
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _keyboardFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
@@ -27,10 +28,28 @@ class _AppLauncherState extends State<AppLauncher> {
     super.initState();
     _initializeService();
     _launcherService.addListener(_onServiceUpdate);
+    _resetState();
+  }
+
+  @override
+  void didUpdateWidget(AppLauncher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _resetState();
+  }
+
+  void _resetState() {
+    // Reset all state when menu is opened
+    setState(() {
+      _selectedIndex = 0;
+      _searchController.clear();
+      _launcherService.clearSearch();
+    });
+
     // Auto-focus search field when opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _keyboardFocusNode.requestFocus();
-      _searchFocusNode.requestFocus();
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
     });
   }
 
@@ -38,7 +57,6 @@ class _AppLauncherState extends State<AppLauncher> {
   void dispose() {
     _launcherService.removeListener(_onServiceUpdate);
     _searchController.dispose();
-    _keyboardFocusNode.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -73,6 +91,9 @@ class _AppLauncherState extends State<AppLauncher> {
 
   void _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
+
+    // Pass to parent if callback is provided
+    widget.onKeyEvent?.call(event);
 
     // Handle Escape key to close menu
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -137,10 +158,23 @@ class _AppLauncherState extends State<AppLauncher> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return KeyboardListener(
+    return Focus(
       autofocus: true,
-      focusNode: _keyboardFocusNode,
-      onKeyEvent: _handleKeyEvent,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+
+        // Only handle navigation keys and Enter/Escape
+        // Let everything else pass through to TextField
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter || key == LogicalKeyboardKey.escape) {
+          _handleKeyEvent(event);
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
       child: Column(
         children: [
           // Search bar
@@ -158,8 +192,11 @@ class _AppLauncherState extends State<AppLauncher> {
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
-                          _searchController.clear();
-                          _launcherService.clearSearch();
+                          setState(() {
+                            _searchController.clear();
+                            _launcherService.clearSearch();
+                            _selectedIndex = 0; // Reset selection when clearing search
+                          });
                         },
                       )
                     : null,

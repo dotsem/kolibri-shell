@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/config/theme/theme.dart';
 import 'package:hypr_flutter/panels/menu/app_launcher.dart';
 
 class MenuPanel extends StatelessWidget {
@@ -6,6 +7,9 @@ class MenuPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: AppLauncher()));
+    return MaterialApp(
+      theme: theme,
+      home: Scaffold(backgroundColor: Theme.of(context).colorScheme.onSurface, body: const AppLauncher()),
+    );
   }
 }
