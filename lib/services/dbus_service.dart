@@ -12,7 +12,6 @@ class HyprPanelDBusService {
 
   DBusClient? _client;
   bool _isRegistered = false;
-  final Map<String, bool> _windowVisibility = <String, bool>{};
 
   static const String busName = 'com.hyprflutter.Panel';
   static const String objectPath = '/com/hyprflutter/Panel';
@@ -166,8 +165,6 @@ class _PanelInterface extends DBusObject {
   Future<DBusMethodResponse> _showPanelById(String panelId) async {
     try {
       await FlLinuxWindowManager.instance.showWindow(windowId: panelId);
-      HyprPanelDBusService.instance._windowVisibility[panelId] = true;
-      debugPrint('DBus: Showing panel: $panelId');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to show panel: $e');
@@ -177,8 +174,6 @@ class _PanelInterface extends DBusObject {
   Future<DBusMethodResponse> _hidePanelById(String panelId) async {
     try {
       await FlLinuxWindowManager.instance.hideWindow(windowId: panelId);
-      HyprPanelDBusService.instance._windowVisibility[panelId] = false;
-      debugPrint('DBus: Hiding panel: $panelId');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to hide panel: $e');
@@ -187,17 +182,12 @@ class _PanelInterface extends DBusObject {
 
   Future<DBusMethodResponse> _togglePanelById(String panelId) async {
     try {
-      final isVisible = HyprPanelDBusService.instance._windowVisibility[panelId] ?? false;
-
-      if (isVisible) {
+      if (await FlLinuxWindowManager.instance.isVisible(windowId: panelId)) {
         await FlLinuxWindowManager.instance.hideWindow(windowId: panelId);
-        HyprPanelDBusService.instance._windowVisibility[panelId] = false;
       } else {
         await FlLinuxWindowManager.instance.showWindow(windowId: panelId);
-        HyprPanelDBusService.instance._windowVisibility[panelId] = true;
       }
 
-      debugPrint('DBus: Toggling panel: $panelId (now ${!isVisible ? "visible" : "hidden"})');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to toggle panel: $e');
@@ -266,8 +256,6 @@ Examples:
 
     try {
       await FlLinuxWindowManager.instance.showWindow(windowId: panelId);
-      HyprPanelDBusService.instance._windowVisibility[panelId] = true;
-      debugPrint('DBus: Showing panel: $panelId');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to show panel: $e');
@@ -283,8 +271,6 @@ Examples:
 
     try {
       await FlLinuxWindowManager.instance.hideWindow(windowId: panelId);
-      HyprPanelDBusService.instance._windowVisibility[panelId] = false;
-      debugPrint('DBus: Hiding panel: $panelId');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to hide panel: $e');
@@ -298,30 +284,18 @@ Examples:
 
     final panelId = (methodCall.values[0] as DBusString).value;
 
-    try {
-      // Check current visibility state (default to false if unknown)
-      final isVisible = HyprPanelDBusService.instance._windowVisibility[panelId] ?? false;
-
-      if (isVisible) {
-        await FlLinuxWindowManager.instance.hideWindow(windowId: panelId);
-        HyprPanelDBusService.instance._windowVisibility[panelId] = false;
-      } else {
-        await FlLinuxWindowManager.instance.showWindow(windowId: panelId);
-        HyprPanelDBusService.instance._windowVisibility[panelId] = true;
-      }
-
-      debugPrint('DBus: Toggling panel: $panelId (now ${!isVisible ? "visible" : "hidden"})');
+    if (await FlLinuxWindowManager.instance.isVisible(windowId: panelId)) {
+      await FlLinuxWindowManager.instance.hideWindow(windowId: panelId);
       return DBusMethodSuccessResponse();
-    } catch (e) {
-      return DBusMethodErrorResponse.failed('Failed to toggle panel: $e');
+    } else {
+      await FlLinuxWindowManager.instance.showWindow(windowId: panelId);
+      return DBusMethodSuccessResponse();
     }
   }
 
   Future<DBusMethodResponse> _showMenu(DBusMethodCall methodCall) async {
     try {
       await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.menu);
-      HyprPanelDBusService.instance._windowVisibility[WindowIds.menu] = true;
-      debugPrint('DBus: Showing menu');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to show menu: $e');
@@ -331,8 +305,6 @@ Examples:
   Future<DBusMethodResponse> _hideMenu(DBusMethodCall methodCall) async {
     try {
       await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.menu);
-      HyprPanelDBusService.instance._windowVisibility[WindowIds.menu] = false;
-      debugPrint('DBus: Hiding menu');
       return DBusMethodSuccessResponse();
     } catch (e) {
       return DBusMethodErrorResponse.failed('Failed to hide menu: $e');
@@ -340,28 +312,17 @@ Examples:
   }
 
   Future<DBusMethodResponse> _toggleMenu(DBusMethodCall methodCall) async {
-    try {
-      // Check current visibility state (default to false if unknown)
-      final isVisible = HyprPanelDBusService.instance._windowVisibility[WindowIds.menu] ?? false;
-
-      if (isVisible) {
-        await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.menu);
-        HyprPanelDBusService.instance._windowVisibility[WindowIds.menu] = false;
-      } else {
-        await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.menu);
-        HyprPanelDBusService.instance._windowVisibility[WindowIds.menu] = true;
-      }
-
-      debugPrint('DBus: Toggling menu (now ${!isVisible ? "visible" : "hidden"})');
+    if (await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.menu)) {
+      await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.menu);
       return DBusMethodSuccessResponse();
-    } catch (e) {
-      return DBusMethodErrorResponse.failed('Failed to toggle menu: $e');
+    } else {
+      await FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.menu);
+      return DBusMethodSuccessResponse();
     }
   }
 
   DBusMethodResponse _listPanels(DBusMethodCall methodCall) {
     final panels = [WindowIds.menu, WindowIds.leftSidebar, WindowIds.rightSidebar, WindowIds.musicPlayer, WindowIds.settings, ...WindowIds.taskbars];
-
     return DBusMethodSuccessResponse([DBusArray.string(panels)]);
   }
 }
