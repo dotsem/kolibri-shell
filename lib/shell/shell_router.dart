@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/panels/menu/menu.dart';
 import 'package:hypr_flutter/panels/music_player/music_player.dart';
 import 'package:hypr_flutter/panels/sidebar_left/sidebar_left.dart';
 import 'package:hypr_flutter/panels/sidebar_right/sidebar_right.dart';
@@ -26,10 +27,9 @@ class ShellRouter extends StatelessWidget {
       case 'music_player':
         return MusicPlayerWidget();
       case 'settings':
-        return const MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: SettingsWindow(),
-        );
+        return const MaterialApp(debugShowCheckedModeBanner: false, home: SettingsWindow());
+      case 'menu':
+        return MenuPanel();
       default:
         return TaskbarWidget(windowId: windowId, monitorIndex: _getMonitorIndex()); // Default to taskbar for main window
     }
@@ -40,7 +40,10 @@ class ShellRouter extends StatelessWidget {
       if (args.contains('--position=left')) return 'left_sidebar';
       if (args.contains('--position=right')) return 'right_sidebar';
     } else if (args.contains('--window-type=popup')) {
-      if (args.contains('--class=musicPlayer')) return 'music_player';
+      if (args.contains('--class=musicPlayer'))
+        return 'music_player';
+      else if (args.contains('--class=menu'))
+        return 'menu';
     } else if (args.contains('--class=settings') || args.contains('--name=${WindowIds.settings}')) {
       return 'settings';
     }

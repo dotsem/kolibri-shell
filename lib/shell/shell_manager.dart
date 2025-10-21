@@ -79,6 +79,9 @@ class ShellManager {
 
       // Create music player
       await createMusicPlayer();
+
+      // Create menu
+      await createMenu();
     } catch (e) {
       print('Error creating shell windows: $e');
     }
@@ -93,6 +96,18 @@ class ShellManager {
     await FlLinuxWindowManager.instance.setMonitor(monitorId: monitorIndex, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
     await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.none, windowId: windowId);
+
+    await _createSharedChannel(windowId);
+  }
+
+  Future<void> createMenu() async {
+    const windowId = WindowIds.menu;
+
+    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Menu", isLayer: true, width: 800, height: 600, args: ["--class=menu", "--name=$windowId", "--window-type=popup"]);
+    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.exclusive, windowId: windowId);
+    await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
+    await FlLinuxWindowManager.instance.enableLayerAutoExclusive(windowId: windowId);
+    await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
 
     await _createSharedChannel(windowId);
   }
@@ -191,17 +206,6 @@ class ShellManager {
       _createdWindows.add(windowId);
     }
     return exists;
-  }
-
-  Future<void> createMenu() async {
-    const windowId = WindowIds.menu;
-
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Menu", isLayer: false, width: 800, height: 600, args: ["--class=menu", "--name=$windowId", "--window-type=popup"]);
-    await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
-    await FlLinuxWindowManager.instance.setLayerAnchor(anchor: ScreenEdge.top.value | ScreenEdge.left.value | ScreenEdge.right.value | ScreenEdge.bottom.value, windowId: windowId);
-    await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
-
-    await _createSharedChannel(windowId);
   }
 
   Future<void> _createSharedChannel(String windowId) async {

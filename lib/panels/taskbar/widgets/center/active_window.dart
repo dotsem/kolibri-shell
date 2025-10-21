@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/hyprland/ipc.dart';
 import 'package:hypr_flutter/services/window_icon_resolver.dart';
 import 'package:hypr_flutter/widgets/animated/slide_fade_transition.dart';
+import 'package:hypr_flutter/window_ids.dart';
 
 class ActiveWindow extends StatefulWidget {
   final double width;
@@ -83,7 +85,9 @@ class _ActiveWindowState extends State<ActiveWindow> with SingleTickerProviderSt
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             foregroundColor: Colors.transparent,
           ),
-          onPressed: () {},
+          onPressed: () {
+            FlLinuxWindowManager.instance.showWindow(windowId: WindowIds.menu);
+          },
           child: Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Theme.of(context).colorScheme.primaryContainer),
             width: widget.width,

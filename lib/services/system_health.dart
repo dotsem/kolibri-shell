@@ -139,25 +139,10 @@ class SystemHealth {
   final double memoryUsage;
   final DateTime lastCheck;
 
-  SystemHealth({
-    this.battery,
-    required this.disks,
-    required this.packages,
-    required this.kernel,
-    required this.services,
-    required this.cpuTemp,
-    required this.memoryUsage,
-    required this.lastCheck,
-  });
+  SystemHealth({this.battery, required this.disks, required this.packages, required this.kernel, required this.services, required this.cpuTemp, required this.memoryUsage, required this.lastCheck});
 
   HealthStatus get overallStatus {
-    final statuses = <HealthStatus>[
-      if (battery != null) battery!.healthStatus,
-      ...disks.map((d) => d.healthStatus),
-      packages.healthStatus,
-      kernel.healthStatus,
-      services.healthStatus,
-    ];
+    final statuses = <HealthStatus>[if (battery != null) battery!.healthStatus, ...disks.map((d) => d.healthStatus), packages.healthStatus, kernel.healthStatus, services.healthStatus];
 
     if (statuses.any((s) => s == HealthStatus.critical)) return HealthStatus.critical;
     if (statuses.any((s) => s == HealthStatus.warning)) return HealthStatus.warning;
@@ -181,84 +166,53 @@ class SystemHealth {
 
     // Battery issues
     if (battery != null && battery!.healthStatus != HealthStatus.excellent) {
-      issuesList.add(HealthIssue(
-        title: 'Battery Health Degraded',
-        description: 'Battery health is at ${battery!.healthPercentage.toStringAsFixed(1)}% with ${battery!.cycleCount} cycles',
-        status: battery!.healthStatus,
-        component: 'Battery',
-      ));
+      issuesList.add(HealthIssue(title: 'Battery Health Degraded', description: 'Battery health is at ${battery!.healthPercentage.toStringAsFixed(1)}% with ${battery!.cycleCount} cycles', status: battery!.healthStatus, component: 'Battery'));
     }
 
     // Disk issues
     for (final disk in disks) {
       if (disk.healthStatus == HealthStatus.critical) {
         if (!disk.smart) {
-          issuesList.add(HealthIssue(
-            title: 'Disk SMART Failure',
-            description: 'SMART health check failed for ${disk.device} (${disk.mountPoint})',
-            status: HealthStatus.critical,
-            component: 'Disk',
-          ));
+          issuesList.add(HealthIssue(title: 'Disk SMART Failure', description: 'SMART health check failed for ${disk.device} (${disk.mountPoint})', status: HealthStatus.critical, component: 'Disk'));
         } else if (disk.usagePercentage >= 95) {
-          issuesList.add(HealthIssue(
-            title: 'Disk Almost Full',
-            description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full',
-            status: HealthStatus.critical,
-            component: 'Disk',
-          ));
+          issuesList.add(HealthIssue(title: 'Disk Almost Full', description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full', status: HealthStatus.critical, component: 'Disk'));
         }
       } else if (disk.healthStatus == HealthStatus.warning) {
-        issuesList.add(HealthIssue(
-          title: 'Disk Space Low',
-          description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full',
-          status: HealthStatus.warning,
-          component: 'Disk',
-        ));
+        issuesList.add(HealthIssue(title: 'Disk Space Low', description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full', status: HealthStatus.warning, component: 'Disk'));
       }
     }
 
     // Package update issues
     if (packages.securityUpdates > 0) {
-      issuesList.add(HealthIssue(
-        title: 'Security Updates Available',
-        description: '${packages.securityUpdates} critical security update${packages.securityUpdates > 1 ? 's' : ''} available',
-        status: packages.securityUpdates > 10 ? HealthStatus.critical : HealthStatus.warning,
-        component: 'Packages',
-      ));
+      issuesList.add(
+        HealthIssue(
+          title: 'Security Updates Available',
+          description: '${packages.securityUpdates} critical security update${packages.securityUpdates > 1 ? 's' : ''} available',
+          status: packages.securityUpdates > 10 ? HealthStatus.critical : HealthStatus.warning,
+          component: 'Packages',
+        ),
+      );
     } else if (packages.totalUpdates > 50) {
-      issuesList.add(HealthIssue(
-        title: 'Many Updates Available',
-        description: '${packages.totalUpdates} package updates available',
-        status: HealthStatus.warning,
-        component: 'Packages',
-      ));
+      issuesList.add(HealthIssue(title: 'Many Updates Available', description: '${packages.totalUpdates} package updates available', status: HealthStatus.warning, component: 'Packages'));
     } else if (packages.totalUpdates > 20) {
-      issuesList.add(HealthIssue(
-        title: 'Updates Available',
-        description: '${packages.totalUpdates} package updates available',
-        status: HealthStatus.good,
-        component: 'Packages',
-      ));
+      issuesList.add(HealthIssue(title: 'Updates Available', description: '${packages.totalUpdates} package updates available', status: HealthStatus.good, component: 'Packages'));
     }
 
     // Kernel issues
     if (!kernel.isLatest) {
-      issuesList.add(HealthIssue(
-        title: 'Kernel Outdated',
-        description: 'Running ${kernel.currentVersion}, latest is ${kernel.latestAvailable}',
-        status: kernel.healthStatus,
-        component: 'Kernel',
-      ));
+      issuesList.add(HealthIssue(title: 'Kernel Outdated', description: 'Running ${kernel.currentVersion}, latest is ${kernel.latestAvailable}', status: kernel.healthStatus, component: 'Kernel'));
     }
 
     // Service issues
     if (services.failedServices.isNotEmpty) {
-      issuesList.add(HealthIssue(
-        title: 'Failed System Services',
-        description: '${services.failedServices.length} service${services.failedServices.length > 1 ? 's' : ''} failed: ${services.failedServices.take(3).join(", ")}${services.failedServices.length > 3 ? "..." : ""}',
-        status: services.healthStatus,
-        component: 'Services',
-      ));
+      issuesList.add(
+        HealthIssue(
+          title: 'Failed System Services',
+          description: '${services.failedServices.length} service${services.failedServices.length > 1 ? 's' : ''} failed: ${services.failedServices.take(3).join(", ")}${services.failedServices.length > 3 ? "..." : ""}',
+          status: services.healthStatus,
+          component: 'Services',
+        ),
+      );
     }
 
     return issuesList;
@@ -278,12 +232,7 @@ class HealthIssue {
   final HealthStatus status;
   final String component;
 
-  HealthIssue({
-    required this.title,
-    required this.description,
-    required this.status,
-    required this.component,
-  });
+  HealthIssue({required this.title, required this.description, required this.status, required this.component});
 }
 
 /// System health monitoring service
@@ -538,14 +487,9 @@ class SystemHealthService extends ChangeNotifier {
       final result = await Process.run('checkupdates', []);
       if (result.exitCode != 0) {
         // checkupdates not installed, try pacman -Qu directly
-        final fallbackResult = await Process.run('pacman', ['-Qu']);
+        final fallbackResult = await Process.run('checkupdates', []);
         final lines = fallbackResult.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();
-        return PackageUpdates(
-          totalUpdates: lines.length,
-          securityUpdates: 0,
-          packages: lines.take(50).toList(),
-          lastChecked: DateTime.now(),
-        );
+        return PackageUpdates(totalUpdates: lines.length, securityUpdates: 0, packages: lines.take(50).toList(), lastChecked: DateTime.now());
       }
 
       final lines = result.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();

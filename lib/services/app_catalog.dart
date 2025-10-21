@@ -439,23 +439,15 @@ class AppCatalogService extends ChangeNotifier {
   }
 
   String? _selectPreferredValue(Map<String, String> entries, String key) {
-    final locale = Platform.localeName.replaceAll('-', '_');
-    final exactLocale = '$key[$locale]';
-    if (entries.containsKey(exactLocale)) {
-      return entries[exactLocale];
+    // Try English first (en_US, en_GB, en)
+    final englishLocales = ['$key[en_US]', '$key[en_GB]', '$key[en]'];
+    for (final englishKey in englishLocales) {
+      if (entries.containsKey(englishKey)) {
+        return entries[englishKey];
+      }
     }
 
-    final shortLocale = locale.split('_').first;
-    final shortLocaleKey = '$key[$shortLocale]';
-    if (entries.containsKey(shortLocaleKey)) {
-      return entries[shortLocaleKey];
-    }
-
-    final fallbackKey = entries.keys.firstWhere((entryKey) => entryKey.startsWith('$key['), orElse: () => '');
-    if (fallbackKey.isNotEmpty) {
-      return entries[fallbackKey];
-    }
-
+    // Fall back to the default (non-localized) value
     return entries[key];
   }
 
@@ -480,6 +472,15 @@ class AppCatalogService extends ChangeNotifier {
       if (dir.isEmpty) continue;
       directories.add(p.join(dir, 'applications'));
     }
+
+    // Add Flatpak application directories
+    directories.add('/var/lib/flatpak/exports/share/applications');
+    if (home != null) {
+      directories.add(p.join(home, '.local', 'share', 'flatpak', 'exports', 'share', 'applications'));
+    }
+
+    // Add Snap application directories
+    directories.add('/var/lib/snapd/desktop/applications');
 
     _applicationDirs = directories.toList(growable: false);
     return _applicationDirs!;
@@ -510,6 +511,12 @@ class AppCatalogService extends ChangeNotifier {
     directories
       ..add('/usr/share/icons')
       ..add('/usr/share/pixmaps');
+
+    // Add Flatpak icon directories
+    directories.add('/var/lib/flatpak/exports/share/icons');
+    if (home != null) {
+      directories.add(p.join(home, '.local', 'share', 'flatpak', 'exports', 'share', 'icons'));
+    }
 
     _iconDirs = directories.toList(growable: false);
     return _iconDirs!;

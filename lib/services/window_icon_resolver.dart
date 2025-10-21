@@ -12,6 +12,13 @@ class WindowIconData {
 
   static const WindowIconData empty = WindowIconData._(iconPath: null, isSvg: false);
 
+  /// Creates a WindowIconData from an icon path.
+  factory WindowIconData.fromPath(String path) {
+    final String lower = path.toLowerCase();
+    final bool isSvg = lower.endsWith('.svg') || lower.endsWith('.svgz');
+    return WindowIconData._(iconPath: path, isSvg: isSvg);
+  }
+
   bool get hasIcon => iconPath != null && iconPath!.isNotEmpty;
 }
 
@@ -76,15 +83,7 @@ class WindowIconResolver {
     return data;
   }
 
-  Widget buildIcon(
-    WindowIconData data, {
-    double size = 20,
-    double borderRadius = 12,
-    BoxFit fit = BoxFit.contain,
-    FilterQuality filterQuality = FilterQuality.high,
-    IconData fallbackIcon = Icons.apps,
-    Color? fallbackColor,
-  }) {
+  Widget buildIcon(WindowIconData data, {double size = 20, double borderRadius = 12, BoxFit fit = BoxFit.contain, FilterQuality filterQuality = FilterQuality.high, IconData fallbackIcon = Icons.apps, Color? fallbackColor}) {
     if (!data.hasIcon) {
       return Icon(fallbackIcon, size: size, color: fallbackColor);
     }
@@ -94,25 +93,14 @@ class WindowIconResolver {
     if (data.isSvg) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: SvgPicture.file(
-          File(path),
-          width: size,
-          height: size,
-          fit: fit,
-        ),
+        child: SvgPicture.file(File(path), width: size, height: size, fit: fit),
       );
     }
 
     final ImageProvider provider = _imageProviders[path] ?? FileImage(File(path));
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: Image(
-        image: provider,
-        width: size,
-        height: size,
-        fit: fit,
-        filterQuality: filterQuality,
-      ),
+      child: Image(image: provider, width: size, height: size, fit: fit, filterQuality: filterQuality),
     );
   }
 }
