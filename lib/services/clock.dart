@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:hypr_flutter/config/config.dart';
 import 'package:hypr_flutter/services/settings.dart' show SettingsKeys, SettingsService;
 
 bool? _showSeconds;
@@ -24,12 +26,30 @@ class ClockService extends ChangeNotifier {
     _isInitialized = true;
     print("ClockService: Starting timer in this isolate");
 
-    // Each isolate runs its own timer - this is fine for clock
-    // For heavy services (Bluetooth, WiFi), use longer intervals or event-based updates
-    SettingsService().getBool(SettingsKeys.showSecondsOnClock).then((showSeconds) {
+    // Try to load from config file first, fallback to settings service
+    _loadShowSecondsFromConfig().then((showSeconds) {
       _showSeconds = showSeconds;
       setTimer(showSeconds);
     });
+  }
+
+  /// Load showSecondsOnClock from appearance config file
+  Future<bool> _loadShowSecondsFromConfig() async {
+    try {
+      final file = File(appearanceConfigPath);
+      if (await file.exists()) {
+        final jsonString = await file.readAsString();
+        final json = jsonDecode(jsonString) as Map<String, dynamic>;
+        final showSeconds = json['showSecondsOnClock'] as bool? ?? false;
+        print('[ClockService] Loaded showSeconds from config: $showSeconds');
+        return showSeconds;
+      }
+    } catch (e) {
+      print('[ClockService] Error loading config, falling back to settings service: $e');
+    }
+
+    // Fallback to settings service
+    return await SettingsService().getBool(SettingsKeys.showSecondsOnClock);
   }
 
   TaskbarClock _taskbarClock = TaskbarClock.getClock();

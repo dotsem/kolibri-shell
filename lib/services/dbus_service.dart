@@ -1,6 +1,8 @@
 import 'package:dbus/dbus.dart';
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hypr_flutter/services/appearance.dart';
+import 'package:hypr_flutter/services/clock.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 /// DBus service for controlling the Hypr Flutter panels.
@@ -113,7 +115,6 @@ class _PanelInterface extends DBusObject {
 
     final action = parts[0].toLowerCase();
     final args = parts.length > 1 ? parts.sublist(1) : <String>[];
-
     try {
       switch (action) {
         case 'menu':
@@ -125,6 +126,10 @@ class _PanelInterface extends DBusObject {
 
         case 'hide-menu':
           return await _hideMenu(methodCall);
+
+        case 'reload-appearance':
+        case 'reload-theme':
+          return await _reloadAppearance();
 
         case 'show':
           if (args.isEmpty) {
@@ -159,6 +164,25 @@ class _PanelInterface extends DBusObject {
       }
     } catch (e) {
       return DBusMethodErrorResponse.failed(e.toString());
+    }
+  }
+
+  Future<DBusMethodResponse> _reloadAppearance() async {
+    try {
+      debugPrint('[DBus] Reloading appearance configuration...');
+      await AppearanceService().reload();
+
+      // Trigger clock service to reload as well
+      // The clock will pick up the new showSeconds setting on next initialization
+      final clockService = ClockService();
+      clockService.dispose();
+      clockService.initialize();
+
+      debugPrint('[DBus] ✓ Appearance reloaded successfully');
+      return DBusMethodSuccessResponse([const DBusString('Appearance reloaded')]);
+    } catch (e) {
+      debugPrint('[DBus] ✗ Failed to reload appearance: $e');
+      return DBusMethodErrorResponse.failed('Failed to reload appearance: $e');
     }
   }
 
@@ -203,6 +227,8 @@ Available commands:
   show <panel-id>       Show a specific panel
   hide <panel-id>       Hide a specific panel
   toggle <panel-id>     Toggle a specific panel
+  reload-appearance     Reload appearance/theme configuration
+  reload-theme          Alias for reload-appearance
   list, list-panels     List all available panels
   help                  Show this help message
   ping                  Check if service is running
@@ -218,6 +244,7 @@ Examples:
   menu                    # Toggle menu
   show left_sidebar       # Show left sidebar
   toggle right_sidebar    # Toggle right sidebar
+  reload-appearance       # Reload theme from config file
   list                    # List all panels
 ''';
 
@@ -239,6 +266,7 @@ Examples:
           DBusIntrospectMethod('ShowMenu'),
           DBusIntrospectMethod('HideMenu'),
           DBusIntrospectMethod('ToggleMenu'),
+          DBusIntrospectMethod('ReloadAppearance', args: [DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.out, name: 'result')]),
           DBusIntrospectMethod('ListPanels', args: [DBusIntrospectArgument(DBusSignature('as'), DBusArgumentDirection.out, name: 'panels')]),
           DBusIntrospectMethod('GetHelp', args: [DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.out, name: 'help')]),
           DBusIntrospectMethod('Ping', args: [DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.out, name: 'response')]),

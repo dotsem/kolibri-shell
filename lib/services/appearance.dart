@@ -1,14 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hypr_flutter/config/config.dart';
 import 'package:hypr_flutter/services/settings.dart';
 import 'package:hypr_flutter/windows/settings/settings_models.dart';
 
-ThemeData buildAppearanceTheme({
-  required bool darkModeEnabled,
-  required Color primaryColor,
-  required Color accentColor,
-  required Color backgroundColor,
-  required Color containerColor,
-}) {
+ThemeData buildAppearanceTheme({required bool darkModeEnabled, required Color primaryColor, required Color accentColor, required Color backgroundColor, required Color containerColor}) {
   final Brightness brightness = darkModeEnabled ? Brightness.dark : Brightness.light;
   final ColorScheme scheme = ColorScheme.fromSeed(seedColor: primaryColor, brightness: brightness).copyWith(
     primary: primaryColor,
@@ -67,24 +64,15 @@ ThemeData buildAppearanceTheme({
       subtitleTextStyle: TextStyle(color: scheme.onSurfaceVariant),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
-    sliderTheme: SliderThemeData(
-      activeTrackColor: scheme.primary,
-      inactiveTrackColor: scheme.primary.withOpacity(0.2),
-      thumbColor: scheme.primary,
-      overlayColor: scheme.primary.withOpacity(0.12),
-      valueIndicatorColor: scheme.primary,
-    ),
+    sliderTheme: SliderThemeData(activeTrackColor: scheme.primary, inactiveTrackColor: scheme.primary.withOpacity(0.2), thumbColor: scheme.primary, overlayColor: scheme.primary.withOpacity(0.12), valueIndicatorColor: scheme.primary),
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith((states) =>
-          states.contains(MaterialState.selected) ? scheme.primary : scheme.onSurfaceVariant.withOpacity(0.3)),
+      fillColor: MaterialStateProperty.resolveWith((states) => states.contains(MaterialState.selected) ? scheme.primary : scheme.onSurfaceVariant.withOpacity(0.3)),
       checkColor: MaterialStateProperty.all<Color>(_contrastingColor(scheme.primary)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     ),
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith((states) =>
-          states.contains(MaterialState.selected) ? scheme.primary : scheme.onSurface.withOpacity(0.5)),
-      trackColor: MaterialStateProperty.resolveWith((states) =>
-          states.contains(MaterialState.selected) ? scheme.primary.withOpacity(0.45) : scheme.onSurface.withOpacity(0.12)),
+      thumbColor: MaterialStateProperty.resolveWith((states) => states.contains(MaterialState.selected) ? scheme.primary : scheme.onSurface.withOpacity(0.5)),
+      trackColor: MaterialStateProperty.resolveWith((states) => states.contains(MaterialState.selected) ? scheme.primary.withOpacity(0.45) : scheme.onSurface.withOpacity(0.12)),
     ),
     dividerTheme: DividerThemeData(color: scheme.onSurfaceVariant.withOpacity(0.2)),
   );
@@ -122,13 +110,7 @@ class AppearanceService extends ChangeNotifier {
   bool get showSecondsOnClock => _showSecondsOnClock;
   NavbarPosition get navbarPosition => _navbarPosition;
 
-  ThemeData get themeData => buildAppearanceTheme(
-        darkModeEnabled: _darkModeEnabled,
-        primaryColor: _primaryColor,
-        accentColor: _accentColor,
-        backgroundColor: _backgroundColor,
-        containerColor: _containerColor,
-      );
+  ThemeData get themeData => buildAppearanceTheme(darkModeEnabled: _darkModeEnabled, primaryColor: _primaryColor, accentColor: _accentColor, backgroundColor: _backgroundColor, containerColor: _containerColor);
 
   Color get taskbarBackgroundColor {
     final double opacity = _taskbarOpacity.clamp(0.0, 1.0);
@@ -148,6 +130,51 @@ class AppearanceService extends ChangeNotifier {
       return;
     }
     _loading = true;
+
+    // Try to load from JSON config file first (from Kolibri Settings)
+    final configLoaded = await _loadFromConfigFile();
+
+    if (!configLoaded) {
+      // Fallback to old settings service
+      await _loadFromSettingsService();
+    }
+
+    _loading = false;
+    _isLoaded = true;
+    notifyListeners();
+  }
+
+  /// Load appearance config from JSON file (Kolibri Settings format)
+  Future<bool> _loadFromConfigFile() async {
+    try {
+      final file = File(appearanceConfigPath);
+      if (!await file.exists()) {
+        print('[AppearanceService] Config file not found: $appearanceConfigPath');
+        return false;
+      }
+
+      final jsonString = await file.readAsString();
+      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+
+      _darkModeEnabled = json['darkMode'] as bool? ?? true;
+      _primaryColor = Color(json['primaryColor'] as int? ?? 0xFF1E88E5);
+      _accentColor = Color(json['accentColor'] as int? ?? 0xFFFFB300);
+      _backgroundColor = Color(json['backgroundColor'] as int? ?? 0xFF121212);
+      _containerColor = Color(json['containerColor'] as int? ?? 0xFF1F1F1F);
+      _taskbarOpacity = (json['taskbarOpacity'] as num?)?.toDouble() ?? 0.9;
+      _enableBlur = json['enableBlur'] as bool? ?? true;
+      _showSecondsOnClock = json['showSecondsOnClock'] as bool? ?? false;
+
+      print('[AppearanceService] ✓ Loaded config from: $appearanceConfigPath');
+      return true;
+    } catch (e) {
+      print('[AppearanceService] Error loading config file: $e');
+      return false;
+    }
+  }
+
+  /// Fallback: Load from old settings service
+  Future<void> _loadFromSettingsService() async {
     await _settings.initialize();
 
     _darkModeEnabled = await _settings.getBool(SettingsKeys.darkModeEnabled);
@@ -161,9 +188,7 @@ class AppearanceService extends ChangeNotifier {
     final String navbarRaw = await _settings.getString(SettingsKeys.navbarPosition);
     _navbarPosition = navbarPositionFromStorage(navbarRaw);
 
-    _loading = false;
-    _isLoaded = true;
-    notifyListeners();
+    print('[AppearanceService] Loaded from settings service (fallback)');
   }
 }
 
