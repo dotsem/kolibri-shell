@@ -152,16 +152,20 @@ class _MusicPanelState extends State<MusicPanel> {
                         ),
                         child: Stack(
                           children: [
-                            if (playerData.isPlaying)
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: MusicWaveIndicator(
-                                  isPlaying: playerData.isPlaying,
-                                  color: dominantColor ?? Theme.of(context).colorScheme.secondary,
-                                ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: MusicWaveIndicator(
+                                isPlaying: playerData.isPlaying,
+                                color: contrastColor == null || dominantColor == null
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Color.alphaBlend(
+                                        dominantColor!.withAlpha(128),
+                                        contrastColor!,
+                                      ),
                               ),
+                            ),
                             // Main content
                             Row(
                               children: [

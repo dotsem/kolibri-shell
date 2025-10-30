@@ -65,14 +65,12 @@ class _MusicWaveIndicatorState extends State<MusicWaveIndicator> with TickerProv
       child: AnimatedBuilder(
         animation: Listenable.merge([_waveController, _fadeAnimation]),
         builder: (context, child) {
-          return Opacity(
-            opacity: _fadeAnimation.value,
-            child: CustomPaint(
-              painter: MusicWavePainter(
-                animation: _waveController.value,
-                color: widget.color,
-                isPlaying: widget.isPlaying,
-              ),
+          return CustomPaint(
+            painter: MusicWavePainter(
+              animation: _waveController.value,
+              color: widget.color,
+              isPlaying: widget.isPlaying,
+              fadeValue: _fadeAnimation.value,
             ),
           );
         },
@@ -85,23 +83,20 @@ class MusicWavePainter extends CustomPainter {
   final double animation;
   final Color color;
   final bool isPlaying;
+  final double fadeValue;
 
-  MusicWavePainter({required this.animation, required this.color, required this.isPlaying});
+  MusicWavePainter({
+    required this.animation,
+    required this.color,
+    required this.isPlaying,
+    required this.fadeValue,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color.withValues(alpha: 0.7)
       ..style = PaintingStyle.fill;
-
-    if (!isPlaying) {
-      // Draw a flat line when paused
-      canvas.drawRect(
-        Rect.fromLTWH(0, size.height / 2 - 0.5, size.width, 1),
-        paint..color = color.withValues(alpha: 0.3),
-      );
-      return;
-    }
 
     // Draw multiple animated waves
     const int barCount = 40;
@@ -115,13 +110,15 @@ class MusicWavePainter extends CustomPainter {
       final double wave2 = progress * 2 * math.pi;
 
       // Combine multiple sine waves for complex animation
-      double height =
-          0.3 +
+      double height = 0.3 +
           0.3 * (1 + math.sin(wave1 * 3 + wave2 * 2)) / 2 +
           0.2 * (1 + math.sin(wave1 * 5 - wave2 * 3)) / 2 +
           0.2 * (1 + math.sin(wave1 * 7 + wave2 * 4)) / 2;
 
       height = height.clamp(0.1, 1.0);
+
+      // Apply fade value to bar height - bars shrink down when fading out
+      height = height * fadeValue;
 
       final double barHeight = size.height * height;
       final double x = i * barWidth;
@@ -135,6 +132,7 @@ class MusicWavePainter extends CustomPainter {
   bool shouldRepaint(MusicWavePainter oldDelegate) {
     return oldDelegate.animation != animation ||
         oldDelegate.isPlaying != isPlaying ||
-        oldDelegate.color != color;
+        oldDelegate.color != color ||
+        oldDelegate.fadeValue != fadeValue;
   }
 }
