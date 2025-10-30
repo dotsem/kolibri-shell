@@ -4,6 +4,7 @@ import 'package:fl_linux_window_manager/widgets/input_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music_info.dart';
 import 'package:hypr_flutter/panels/taskbar/widgets/music/music_controls.dart';
+import 'package:hypr_flutter/panels/taskbar/widgets/music/music_wave_indicator.dart';
 import 'package:hypr_flutter/services/music.dart';
 import 'package:hypr_flutter/window_ids.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -34,14 +35,20 @@ class _MusicPanelState extends State<MusicPanel> {
   Future<void> _extractDominantColor(ImageProvider imageProvider) async {
     if (lastProcessedImage == imageProvider) return;
 
-    final paletteGenerator = await PaletteGenerator.fromImageProvider(imageProvider, maximumColorCount: 10);
+    final paletteGenerator = await PaletteGenerator.fromImageProvider(
+      imageProvider,
+      maximumColorCount: 10,
+    );
 
     // Get dominant color, excluding black/very dark colors
     Color? selectedColor = paletteGenerator.dominantColor?.color;
 
     // If dominant color is too dark, try vibrant or muted colors
     if (selectedColor != null && selectedColor.computeLuminance() < 0.1) {
-      selectedColor = paletteGenerator.vibrantColor?.color ?? paletteGenerator.mutedColor?.color ?? selectedColor;
+      selectedColor =
+          paletteGenerator.vibrantColor?.color ??
+          paletteGenerator.mutedColor?.color ??
+          selectedColor;
     }
 
     if (mounted) {
@@ -83,7 +90,9 @@ class _MusicPanelState extends State<MusicPanel> {
             },
             child: GestureDetector(
               onTap: () async {
-                if (await FlLinuxWindowManager.instance.isVisible(windowId: WindowIds.musicPlayer)) {
+                if (await FlLinuxWindowManager.instance.isVisible(
+                  windowId: WindowIds.musicPlayer,
+                )) {
                   musicPlayerPanelVisible = false;
                   await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.musicPlayer);
                 } else {
@@ -110,40 +119,89 @@ class _MusicPanelState extends State<MusicPanel> {
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [dominantColor!.withValues(alpha: 0.2), dominantColor!.withValues(alpha: 0.2)]),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  dominantColor!.withValues(alpha: 0.2),
+                                  dominantColor!.withValues(alpha: 0.2),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       Theme(
                         data: Theme.of(context).copyWith(
-                          textTheme: contrastColor != null ? Theme.of(context).textTheme.apply(bodyColor: contrastColor, displayColor: contrastColor) : Theme.of(context).textTheme,
-                          sliderTheme: contrastColor != null ? SliderThemeData(activeTrackColor: Theme.of(context).colorScheme.primary, inactiveTrackColor: contrastColor) : Theme.of(context).sliderTheme,
-                          iconButtonTheme: contrastColor != null ? IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: contrastColor)) : Theme.of(context).iconButtonTheme,
+                          textTheme: contrastColor != null
+                              ? Theme.of(context).textTheme.apply(
+                                  bodyColor: contrastColor,
+                                  displayColor: contrastColor,
+                                )
+                              : Theme.of(context).textTheme,
+                          sliderTheme: contrastColor != null
+                              ? SliderThemeData(
+                                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                                  inactiveTrackColor: contrastColor,
+                                )
+                              : Theme.of(context).sliderTheme,
+                          iconButtonTheme: contrastColor != null
+                              ? IconButtonThemeData(
+                                  style: IconButton.styleFrom(foregroundColor: contrastColor),
+                                )
+                              : Theme.of(context).iconButtonTheme,
                         ),
-                        child: Row(
+                        child: Stack(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: playerData.art != null ? Image(image: playerData.art!, width: 48, height: 48, fit: BoxFit.cover) : Container(width: 48, height: 48, color: Theme.of(context).colorScheme.surface),
+                            if (playerData.isPlaying)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: MusicWaveIndicator(
+                                  isPlaying: playerData.isPlaying,
+                                  color: dominantColor ?? Theme.of(context).colorScheme.secondary,
+                                ),
+                              ),
+                            // Main content
+                            Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: playerData.art != null
+                                      ? Image(
+                                          image: playerData.art!,
+                                          width: 48,
+                                          height: 48,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(
+                                          width: 48,
+                                          height: 48,
+                                          color: Theme.of(context).colorScheme.surface,
+                                        ),
+                                ),
+                                hovered
+                                    ? MusicControls(
+                                        playerData: playerData,
+                                        updatePlayerData: () {
+                                          // The D-Bus listener will automatically update when properties change
+                                          // But we can manually trigger an update for immediate feedback
+                                          musicService.getPlayerData();
+                                        },
+                                        positionChanged: (value) {
+                                          musicService.seek(value);
+                                        },
+                                      )
+                                    : MusicInfo(
+                                        playerData: playerData,
+                                        onSeek: (value) {
+                                          musicService.seek(value);
+                                        },
+                                      ),
+                              ],
                             ),
-                            hovered
-                                ? MusicControls(
-                                    playerData: playerData,
-                                    updatePlayerData: () {
-                                      // The D-Bus listener will automatically update when properties change
-                                      // But we can manually trigger an update for immediate feedback
-                                      musicService.getPlayerData();
-                                    },
-                                    positionChanged: (value) {
-                                      musicService.seek(value);
-                                    },
-                                  )
-                                : MusicInfo(
-                                    playerData: playerData,
-                                    onSeek: (value) {
-                                      musicService.seek(value);
-                                    },
-                                  ),
+
+                            // Music wave indicator at the bottom
                           ],
                         ),
                       ),
