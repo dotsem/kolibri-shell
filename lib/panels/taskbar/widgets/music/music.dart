@@ -184,24 +184,39 @@ class _MusicPanelState extends State<MusicPanel> {
                                           color: Theme.of(context).colorScheme.surface,
                                         ),
                                 ),
-                                hovered
-                                    ? MusicControls(
-                                        playerData: playerData,
-                                        updatePlayerData: () {
-                                          // The D-Bus listener will automatically update when properties change
-                                          // But we can manually trigger an update for immediate feedback
-                                          musicService.getPlayerData();
-                                        },
-                                        positionChanged: (value) {
-                                          musicService.seek(value);
-                                        },
-                                      )
-                                    : MusicInfo(
-                                        playerData: playerData,
-                                        onSeek: (value) {
-                                          musicService.seek(value);
-                                        },
-                                      ),
+                                Expanded(
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    switchInCurve: Curves.easeInOut,
+                                    switchOutCurve: Curves.easeInOut,
+                                    transitionBuilder: (child, animation) {
+                                      return FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      );
+                                    },
+                                    child: hovered
+                                        ? MusicControls(
+                                            key: const ValueKey('controls'),
+                                            playerData: playerData,
+                                            updatePlayerData: () {
+                                              // The D-Bus listener will automatically update when properties change
+                                              // But we can manually trigger an update for immediate feedback
+                                              musicService.getPlayerData();
+                                            },
+                                            positionChanged: (value) {
+                                              musicService.seek(value);
+                                            },
+                                          )
+                                        : MusicInfo(
+                                            key: const ValueKey('info'),
+                                            playerData: playerData,
+                                            onSeek: (value) {
+                                              musicService.seek(value);
+                                            },
+                                          ),
+                                  ),
+                                ),
                               ],
                             ),
 

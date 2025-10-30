@@ -110,7 +110,8 @@ class MusicWavePainter extends CustomPainter {
       final double wave2 = progress * 2 * math.pi;
 
       // Combine multiple sine waves for complex animation
-      double height = 0.3 +
+      double height =
+          0.3 +
           0.3 * (1 + math.sin(wave1 * 3 + wave2 * 2)) / 2 +
           0.2 * (1 + math.sin(wave1 * 5 - wave2 * 3)) / 2 +
           0.2 * (1 + math.sin(wave1 * 7 + wave2 * 4)) / 2;
