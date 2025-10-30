@@ -89,9 +89,9 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                         taskbarId: widget.windowId,
                         windowId: widget.windowId,
                       ),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, right: 8),
-                        child: Workspaces(monitorIndex: 0),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, right: 8),
+                        child: Workspaces(monitorIndex: widget.monitorIndex),
                       ),
                       MusicPanel(key: musicPlayerKey),
                     ],
