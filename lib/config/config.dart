@@ -2,8 +2,11 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 
 const int workspacesPerMonitor = 10;
-const String hyprFlutterPath = "~/prog/flutter/hypr_flutter";
-const String buildPath = "$hyprFlutterPath/build/linux/x64/release/bundle/hypr_flutter";
+final home = Platform.environment['HOME']!;
+final String hyprFlutterPath = "$home/prog/flutter/hypr_flutter";
+final String buildPath = "$hyprFlutterPath/build/linux/x64/release/bundle/hypr_flutter";
+final String settingsAppWorkdir = "$hyprFlutterPath/apps/kolibri_settings/build/linux/x64/release/bundle";
+final String settingsAppRun = "$settingsAppWorkdir/kolibri_settings";
 
 // Centralized config directory
 String get configDirectory {

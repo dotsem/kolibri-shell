@@ -326,43 +326,98 @@ class _DisplayCanvasScreenState extends State<DisplayCanvasScreen> {
     int y = position.dy.round();
 
     if (snap) {
-      // Snap to grid (100px increments)
-      const snapGrid = 100;
-      x = (x / snapGrid).round() * snapGrid;
-      y = (y / snapGrid).round() * snapGrid;
+      const snapDistance = 50;
+      bool snappedX = false;
+      bool snappedY = false;
 
-      // Snap to 0,0 if close
-      if ((x.abs() < 50) && (y.abs() < 50)) {
+      // Priority 1: Snap to origin (0,0)
+      if (x.abs() < snapDistance && y.abs() < snapDistance) {
         x = 0;
         y = 0;
+        snappedX = true;
+        snappedY = true;
       } else {
-        // Snap to other monitors' edges
+        // Priority 2: Snap to other monitors' edges
+        final thisWidth = config.resolution.width;
+        final thisHeight = config.resolution.height;
+
+        // Find closest snap point for X and Y independently
+        int? bestSnapX;
+        int? bestSnapY;
+        double bestDistanceX = snapDistance.toDouble();
+        double bestDistanceY = snapDistance.toDouble();
+
         for (final other in _configs.entries) {
           if (other.key == monitorName) continue;
           final otherConfig = other.value;
           if (!otherConfig.enabled) continue;
 
-          final otherRight = otherConfig.position.x + otherConfig.resolution.width;
-          final otherBottom = otherConfig.position.y + otherConfig.resolution.height;
-          final thisWidth = config.resolution.width;
-          final thisHeight = config.resolution.height;
+          final otherX = otherConfig.position.x;
+          final otherY = otherConfig.position.y;
+          final otherRight = otherX + otherConfig.resolution.width;
+          final otherBottom = otherY + otherConfig.resolution.height;
 
-          // Snap to left edge
-          if ((x - otherRight).abs() < 50) {
-            x = otherRight;
+          // Try all possible X snap positions
+          final snapPositionsX = [
+            otherRight, // Left edge to other's right edge
+            otherX - thisWidth, // Right edge to other's left edge
+            otherX, // Left edges aligned
+            otherRight - thisWidth, // Right edges aligned
+          ];
+
+          for (final snapX in snapPositionsX) {
+            final distance = (x - snapX).abs().toDouble();
+            if (distance < bestDistanceX) {
+              // Check if at this X position, monitors would overlap vertically
+              final thisBottom = y + thisHeight;
+              bool wouldOverlapY = !(thisBottom <= otherY || y >= otherBottom);
+
+              if (wouldOverlapY) {
+                bestDistanceX = distance;
+                bestSnapX = snapX;
+              }
+            }
           }
-          // Snap to right edge
-          if ((x + thisWidth - otherConfig.position.x).abs() < 50) {
-            x = otherConfig.position.x - thisWidth;
+
+          // Try all possible Y snap positions
+          final snapPositionsY = [
+            otherBottom, // Top edge to other's bottom edge
+            otherY - thisHeight, // Bottom edge to other's top edge
+            otherY, // Top edges aligned
+            otherBottom - thisHeight, // Bottom edges aligned
+          ];
+
+          for (final snapY in snapPositionsY) {
+            final distance = (y - snapY).abs().toDouble();
+            if (distance < bestDistanceY) {
+              // Check if at this Y position, monitors would overlap horizontally
+              final thisRight = x + thisWidth;
+              bool wouldOverlapX = !(thisRight <= otherX || x >= otherRight);
+
+              if (wouldOverlapX) {
+                bestDistanceY = distance;
+                bestSnapY = snapY;
+              }
+            }
           }
-          // Snap to top edge
-          if ((y - otherBottom).abs() < 50) {
-            y = otherBottom;
-          }
-          // Snap to bottom edge
-          if ((y + thisHeight - otherConfig.position.y).abs() < 50) {
-            y = otherConfig.position.y - thisHeight;
-          }
+        }
+
+        if (bestSnapX != null) {
+          x = bestSnapX;
+          snappedX = true;
+        }
+        if (bestSnapY != null) {
+          y = bestSnapY;
+          snappedY = true;
+        }
+
+        // Priority 3: Snap to grid (only if not snapped to edges)
+        const snapGrid = 250;
+        if (!snappedX) {
+          x = (x / snapGrid).round() * snapGrid;
+        }
+        if (!snappedY) {
+          y = (y / snapGrid).round() * snapGrid;
         }
       }
     }
@@ -775,6 +830,8 @@ class _DisplayCanvasScreenState extends State<DisplayCanvasScreen> {
         const SizedBox(height: 16),
         _buildRotationSelector(monitor, config),
         const SizedBox(height: 16),
+        _buildMirrorSelector(monitor, config),
+        const SizedBox(height: 16),
         _buildMonitorToggles(monitor, config),
       ],
     );
@@ -965,6 +1022,93 @@ class _DisplayCanvasScreenState extends State<DisplayCanvasScreen> {
     );
   }
 
+  Widget _buildMirrorSelector(Monitor monitor, MonitorConfig config) {
+    // Get list of other monitors that can be mirrored
+    // Exclude monitors that are already mirroring this one (prevent circular references)
+    final otherMonitors = _monitors.where((m) {
+      if (m.name == monitor.name) return false;
+      final otherConfig = _configs[m.name];
+      if (otherConfig == null || !otherConfig.enabled) return false;
+      // Don't allow mirroring a monitor that's mirroring this one
+      if (otherConfig.mirror == monitor.name) return false;
+      return true;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Mirror Display', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String?>(
+          value: config.mirror,
+          decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, hintText: 'No mirroring'),
+          items: [
+            const DropdownMenuItem<String?>(value: null, child: Text('None (Independent display)')),
+            ...otherMonitors.map((m) {
+              return DropdownMenuItem<String?>(value: m.name, child: Text('Mirror ${m.name}'));
+            }),
+          ],
+          onChanged: config.enabled && otherMonitors.isNotEmpty
+              ? (value) {
+                  // Clear mirror from any monitor that was mirroring this one
+                  if (value != null) {
+                    final Map<String, MonitorConfig> updatedConfigs = {};
+                    for (final entry in _configs.entries) {
+                      if (entry.value.mirror == monitor.name) {
+                        updatedConfigs[entry.key] = entry.value.copyWith(mirror: () => null);
+                      }
+                    }
+                    if (updatedConfigs.isNotEmpty) {
+                      setState(() {
+                        _configs.addAll(updatedConfigs);
+                      });
+                    }
+                  }
+
+                  _updateMonitorConfig(monitor.name, config.copyWith(mirror: () => value));
+                }
+              : null,
+        ),
+        if (config.mirror != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.flip_to_front, size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('This display will show the same content as ${config.mirror}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (otherMonitors.isEmpty && config.mirror == null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('No other monitors available to mirror', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildMonitorToggles(Monitor monitor, MonitorConfig config) {
     final canDisable = _canDisableMonitor(monitor.name);
     final canDisablePrimary = _canDisablePrimary(monitor.name);
@@ -1110,6 +1254,27 @@ class _MonitorWidgetState extends State<_MonitorWidget> {
                     child: Text(
                       'PRIMARY',
                       style: TextStyle(fontSize: 10 * widget.scale * 4, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimary),
+                    ),
+                  ),
+                ),
+              // Mirror badge
+              if (widget.config.mirror != null)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Theme.of(context).colorScheme.tertiary, borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.flip_to_front, size: 12 * widget.scale * 4, color: Theme.of(context).colorScheme.onTertiary),
+                        SizedBox(width: 4 * widget.scale * 4),
+                        Text(
+                          'MIRROR',
+                          style: TextStyle(fontSize: 10 * widget.scale * 4, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onTertiary),
+                        ),
+                      ],
                     ),
                   ),
                 ),

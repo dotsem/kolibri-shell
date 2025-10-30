@@ -136,4 +136,90 @@ class DisplayService {
       return DisplayConfig(monitors: []);
     }
   }
+
+  /// Save current mirror state to cache
+  Future<bool> saveMirrorState() async {
+    try {
+      final scriptPath = '${Platform.environment['HOME']}/.config/hypr/hyprmulti-monitor-workspace-support/src/mirrorCache.sh';
+      final result = await Process.run(scriptPath, ['save']);
+      print('[DisplayService] Mirror state saved: ${result.stdout}');
+      return result.exitCode == 0;
+    } catch (e) {
+      print('[DisplayService] Error saving mirror state: $e');
+      return false;
+    }
+  }
+
+  /// Restore mirror state from cache
+  Future<bool> restoreMirrorState() async {
+    try {
+      final scriptPath = '${Platform.environment['HOME']}/.config/hypr/hyprmulti-monitor-workspace-support/src/mirrorCache.sh';
+      final result = await Process.run(scriptPath, ['restore']);
+      print('[DisplayService] Mirror state restored: ${result.stdout}');
+      return result.exitCode == 0;
+    } catch (e) {
+      print('[DisplayService] Error restoring mirror state: $e');
+      return false;
+    }
+  }
+
+  /// Handle workspace reorganization after mirror change
+  Future<bool> reorganizeAfterMirrorChange() async {
+    try {
+      final scriptPath = '${Platform.environment['HOME']}/.config/hypr/hyprmulti-monitor-workspace-support/src/handleMirrorChange.sh';
+      final result = await Process.run(scriptPath, ['reorganize']);
+      print('[DisplayService] Workspaces reorganized: ${result.stdout}');
+      return result.exitCode == 0;
+    } catch (e) {
+      print('[DisplayService] Error reorganizing workspaces: $e');
+      return false;
+    }
+  }
+
+  /// Detect mirror changes between two configurations
+  Map<String, String?> detectMirrorChanges(DisplayConfig oldConfig, DisplayConfig newConfig) {
+    final changes = <String, String?>{};
+
+    for (final newMonitor in newConfig.monitors) {
+      final oldMonitor = oldConfig.monitors.where((m) => m.name == newMonitor.name).firstOrNull;
+
+      if (oldMonitor != null && oldMonitor.mirror != newMonitor.mirror) {
+        changes[newMonitor.name] = newMonitor.mirror;
+      }
+    }
+
+    return changes;
+  }
+
+  /// Apply display configuration with mirror change handling
+  Future<bool> applyDisplayConfigWithMirrorHandling(DisplayConfig oldConfig, DisplayConfig newConfig) async {
+    try {
+      // Save current mirror state before changes
+      await saveMirrorState();
+
+      // Detect mirror changes
+      final mirrorChanges = detectMirrorChanges(oldConfig, newConfig);
+
+      // Apply the configuration
+      final success = await applyDisplayConfig(newConfig);
+
+      if (!success) {
+        print('[DisplayService] Failed to apply config, restoring mirror state');
+        await restoreMirrorState();
+        return false;
+      }
+
+      // If there were mirror changes, reorganize workspaces
+      if (mirrorChanges.isNotEmpty) {
+        print('[DisplayService] Mirror changes detected: $mirrorChanges');
+        await Future.delayed(Duration(milliseconds: 500)); // Let changes settle
+        await reorganizeAfterMirrorChange();
+      }
+
+      return true;
+    } catch (e) {
+      print('[DisplayService] Error applying config with mirror handling: $e');
+      return false;
+    }
+  }
 }

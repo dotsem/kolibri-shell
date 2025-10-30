@@ -350,7 +350,7 @@ Examples:
   }
 
   DBusMethodResponse _listPanels(DBusMethodCall methodCall) {
-    final panels = [WindowIds.menu, WindowIds.leftSidebar, WindowIds.rightSidebar, WindowIds.musicPlayer, WindowIds.settings, ...WindowIds.taskbars];
+    final panels = [WindowIds.menu, WindowIds.leftSidebar, WindowIds.rightSidebar, WindowIds.musicPlayer, ...WindowIds.taskbars];
     return DBusMethodSuccessResponse([DBusArray.string(panels)]);
   }
 }

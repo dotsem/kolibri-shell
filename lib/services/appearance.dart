@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hypr_flutter/config/config.dart';
 import 'package:hypr_flutter/services/settings.dart';
-import 'package:hypr_flutter/windows/settings/settings_models.dart';
 
 ThemeData buildAppearanceTheme({required bool darkModeEnabled, required Color primaryColor, required Color accentColor, required Color backgroundColor, required Color containerColor}) {
   final Brightness brightness = darkModeEnabled ? Brightness.dark : Brightness.light;
@@ -97,7 +96,6 @@ class AppearanceService extends ChangeNotifier {
   Color _containerColor = const Color(0xFF1F1F1F);
   double _taskbarOpacity = 0.9;
   bool _showSecondsOnClock = false;
-  NavbarPosition _navbarPosition = NavbarPosition.top;
 
   bool get isLoaded => _isLoaded;
   bool get darkModeEnabled => _darkModeEnabled;
@@ -108,7 +106,6 @@ class AppearanceService extends ChangeNotifier {
   Color get containerColor => _containerColor;
   double get taskbarOpacity => _taskbarOpacity;
   bool get showSecondsOnClock => _showSecondsOnClock;
-  NavbarPosition get navbarPosition => _navbarPosition;
 
   ThemeData get themeData => buildAppearanceTheme(darkModeEnabled: _darkModeEnabled, primaryColor: _primaryColor, accentColor: _accentColor, backgroundColor: _backgroundColor, containerColor: _containerColor);
 
@@ -186,7 +183,6 @@ class AppearanceService extends ChangeNotifier {
     _taskbarOpacity = await _settings.getDouble(SettingsKeys.taskbarOpacity);
     _showSecondsOnClock = await _settings.getBool(SettingsKeys.showSecondsOnClock);
     final String navbarRaw = await _settings.getString(SettingsKeys.navbarPosition);
-    _navbarPosition = navbarPositionFromStorage(navbarRaw);
 
     print('[AppearanceService] Loaded from settings service (fallback)');
   }

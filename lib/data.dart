@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:hypr_flutter/hyprland/ctl.dart';
 import 'package:hypr_flutter/hyprland/ipc.dart';

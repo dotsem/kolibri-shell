@@ -9,7 +9,16 @@ class MenuPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: theme,
-      home: Scaffold(backgroundColor: Theme.of(context).colorScheme.onSurface, body: const AppLauncher()),
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(12)),
+            child: const AppLauncher(),
+          ),
+        ),
+      ),
     );
   }
 }

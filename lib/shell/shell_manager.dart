@@ -65,23 +65,44 @@ class ShellManager {
 
   Future<void> createShellWindows() async {
     int monitorCount = (await hyprCtl.getMonitors()).length;
+    print("ShellManager: Creating shell windows for $monitorCount monitors");
+
     try {
+      // Create taskbars for additional monitors (only if not already created)
       for (int i = 1; i < monitorCount; i++) {
-        await createTaskbar(monitorIndex: i);
-        WindowIds.taskbars.add("taskbar_$i");
+        final windowId = "taskbar_$i";
+        if (!_createdWindows.contains(windowId) && !_creationInFlight.containsKey(windowId)) {
+          _creationInFlight[windowId] = createTaskbar(monitorIndex: i);
+          await _creationInFlight[windowId];
+          _creationInFlight.remove(windowId);
+          WindowIds.taskbars.add(windowId);
+        }
       }
 
-      // Create left sidebar
-      await createLeftSidebar();
+      // Create other windows only if they don't exist
+      if (!_createdWindows.contains(WindowIds.leftSidebar) && !_creationInFlight.containsKey(WindowIds.leftSidebar)) {
+        _creationInFlight[WindowIds.leftSidebar] = createLeftSidebar();
+        await _creationInFlight[WindowIds.leftSidebar];
+        _creationInFlight.remove(WindowIds.leftSidebar);
+      }
 
-      // Create right sidebar
-      await createRightSidebar();
+      if (!_createdWindows.contains(WindowIds.rightSidebar) && !_creationInFlight.containsKey(WindowIds.rightSidebar)) {
+        _creationInFlight[WindowIds.rightSidebar] = createRightSidebar();
+        await _creationInFlight[WindowIds.rightSidebar];
+        _creationInFlight.remove(WindowIds.rightSidebar);
+      }
 
-      // Create music player
-      await createMusicPlayer();
+      if (!_createdWindows.contains(WindowIds.musicPlayer) && !_creationInFlight.containsKey(WindowIds.musicPlayer)) {
+        _creationInFlight[WindowIds.musicPlayer] = createMusicPlayer();
+        await _creationInFlight[WindowIds.musicPlayer];
+        _creationInFlight.remove(WindowIds.musicPlayer);
+      }
 
-      // Create menu
-      await createMenu();
+      if (!_createdWindows.contains(WindowIds.menu) && !_creationInFlight.containsKey(WindowIds.menu)) {
+        _creationInFlight[WindowIds.menu] = createMenu();
+        await _creationInFlight[WindowIds.menu];
+        _creationInFlight.remove(WindowIds.menu);
+      }
     } catch (e) {
       print('Error creating shell windows: $e');
     }
@@ -107,6 +128,7 @@ class ShellManager {
     await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.exclusive, windowId: windowId);
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
     await FlLinuxWindowManager.instance.enableLayerAutoExclusive(windowId: windowId);
+    await FlLinuxWindowManager.instance.enableTransparency(windowId: windowId);
     await FlLinuxWindowManager.instance.hideWindow(windowId: windowId);
 
     await _createSharedChannel(windowId);
@@ -150,62 +172,6 @@ class ShellManager {
     await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: false, windowId: windowId);
 
     await _createSharedChannel(windowId);
-  }
-
-  Future<void> createSettingsWindow() async {
-    const windowId = WindowIds.settings;
-
-    await ensureSettingsWindow();
-
-    try {
-      await FlLinuxWindowManager.instance.showWindow(windowId: windowId);
-    } catch (_) {}
-
-    try {
-      await FlLinuxWindowManager.instance.setFocus(windowId: windowId);
-    } catch (_) {}
-  }
-
-  Future<void> ensureSettingsWindow() async {
-    const windowId = WindowIds.settings;
-
-    if (await _isWindowReady(windowId)) {
-      return;
-    }
-
-    if (_creationInFlight.containsKey(windowId)) {
-      return _creationInFlight[windowId];
-    }
-
-    final Future<void> creation = _createSettingsWindowInternal(windowId);
-    _creationInFlight[windowId] = creation;
-
-    try {
-      await creation;
-    } finally {
-      _creationInFlight.remove(windowId);
-    }
-  }
-
-  Future<void> _createSettingsWindowInternal(String windowId) async {
-    await FlLinuxWindowManager.instance.createWindow(windowId: windowId, title: "Settings", isLayer: false, width: 800, height: 600, args: ["--class=settings", "--name=$windowId", "--window-type=window"]);
-    // await FlLinuxWindowManager.instance.setKeyboardInteractivity(KeyboardMode.onDemand, windowId: windowId);
-    await FlLinuxWindowManager.instance.setIsDecorated(isDecorated: true, windowId: windowId);
-
-    await _createSharedChannel(windowId);
-    _createdWindows.add(windowId);
-  }
-
-  Future<bool> _isWindowReady(String windowId) async {
-    if (_createdWindows.contains(windowId)) {
-      return true;
-    }
-
-    final bool exists = await FlLinuxWindowManager.instance.isWindowIdUsed(windowId);
-    if (exists) {
-      _createdWindows.add(windowId);
-    }
-    return exists;
   }
 
   Future<void> _createSharedChannel(String windowId) async {

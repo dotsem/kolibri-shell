@@ -4,7 +4,6 @@ import 'package:hypr_flutter/panels/music_player/music_player.dart';
 import 'package:hypr_flutter/panels/sidebar_left/sidebar_left.dart';
 import 'package:hypr_flutter/panels/sidebar_right/sidebar_right.dart';
 import 'package:hypr_flutter/panels/taskbar/taskbar.dart';
-import 'package:hypr_flutter/windows/settings/settings_window.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class ShellRouter extends StatelessWidget {
@@ -26,8 +25,6 @@ class ShellRouter extends StatelessWidget {
         return RightSidebarWidget();
       case 'music_player':
         return MusicPlayerWidget();
-      case 'settings':
-        return const MaterialApp(debugShowCheckedModeBanner: false, home: SettingsWindow());
       case 'menu':
         return MenuPanel();
       default:
@@ -44,8 +41,6 @@ class ShellRouter extends StatelessWidget {
         return 'music_player';
       else if (args.contains('--class=menu'))
         return 'menu';
-    } else if (args.contains('--class=settings') || args.contains('--name=${WindowIds.settings}')) {
-      return 'settings';
     }
     return 'taskbar'; // Default
   }

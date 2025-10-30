@@ -1,9 +1,11 @@
+import 'dart:io';
+
 import 'package:fl_linux_window_manager/fl_linux_window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hypr_flutter/config/config.dart';
 import 'package:hypr_flutter/panels/sidebar_right/header/hypr_flutter_runner.dart';
 import 'package:hypr_flutter/services/system.dart';
-import 'package:hypr_flutter/shell/shell_manager.dart';
 import 'package:hypr_flutter/window_ids.dart';
 
 class SidebarRightHeader extends StatefulWidget {
@@ -42,8 +44,12 @@ class SidebarRightHeaderState extends State<SidebarRightHeader> {
           IconButton(
             tooltip: "Settings",
             onPressed: () async {
-              await ShellManager().createSettingsWindow();
               await FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.rightSidebar);
+
+              final pgrep = await Process.run("pgrep", ["-f", "kolibri_settings"]);
+              if (pgrep.exitCode != 0) {
+                await Process.start("exec", [settingsAppRun], workingDirectory: settingsAppWorkdir, mode: ProcessStartMode.detachedWithStdio);
+              }
             },
             icon: const Icon(Icons.settings),
           ),
