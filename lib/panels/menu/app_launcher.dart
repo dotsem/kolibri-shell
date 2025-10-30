@@ -32,24 +32,22 @@ class _AppLauncherState extends State<AppLauncher> {
     super.initState();
     _initializeService();
     _launcherService.addListener(_onServiceUpdate);
-    _resetState();
+    // Reset state on init
+    _selectedIndex = 0;
+    _searchController.clear();
+    _launcherService.clearSearch();
   }
 
   @override
   void didUpdateWidget(AppLauncher oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _resetState();
+    // Don't call _resetState here as it causes issues
   }
 
-  void _resetState() {
-    // Reset all state when menu is opened
-    setState(() {
-      _selectedIndex = 0;
-      _searchController.clear();
-      _launcherService.clearSearch();
-    });
-
-    // Auto-focus search field when opened
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Request focus whenever dependencies change (when widget becomes visible)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _searchFocusNode.requestFocus();
@@ -122,7 +120,8 @@ class _AppLauncherState extends State<AppLauncher> {
           _scrollToSelected();
         }
       });
-    } else if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+    } else if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
       if (_selectedIndex >= 0 && _selectedIndex < apps.length) {
         _onAppTap(apps[_selectedIndex]);
       }
@@ -141,9 +140,17 @@ class _AppLauncherState extends State<AppLauncher> {
 
     // Scroll if selected item is not fully visible
     if (targetOffset < currentOffset) {
-      _scrollController.animateTo(targetOffset, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
     } else if (targetOffset + itemHeight > currentOffset + viewportHeight) {
-      _scrollController.animateTo(targetOffset + itemHeight - viewportHeight, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      _scrollController.animateTo(
+        targetOffset + itemHeight - viewportHeight,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -151,8 +158,19 @@ class _AppLauncherState extends State<AppLauncher> {
     final success = await _launcherService.launch(app);
     if (mounted) {
       if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to launch ${app.app.name}'), duration: const Duration(seconds: 2)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to launch ${app.app.name}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       } else {
+        // Clear search before hiding window
+        setState(() {
+          _searchController.clear();
+          _launcherService.clearSearch();
+          _selectedIndex = 0;
+        });
         FlLinuxWindowManager.instance.hideWindow(windowId: WindowIds.menu);
       }
     }
@@ -161,6 +179,13 @@ class _AppLauncherState extends State<AppLauncher> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Always request focus on every build to ensure search bar is focused
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_searchFocusNode.hasFocus) {
+        _searchFocusNode.requestFocus();
+      }
+    });
 
     return Focus(
       autofocus: false,
@@ -180,7 +205,10 @@ class _AppLauncherState extends State<AppLauncher> {
 
         // Handle navigation keys (arrows and Enter) only if they're not being used in TextField
         // This allows arrow keys to navigate the list while typing still works in TextField
-        if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+        if (key == LogicalKeyboardKey.arrowDown ||
+            key == LogicalKeyboardKey.arrowUp ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter) {
           _handleKeyEvent(event);
           // Keep TextField focused after navigation
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -229,8 +257,15 @@ class _AppLauncherState extends State<AppLauncher> {
                 const SizedBox(width: 8),
                 // Master eye toggle
                 IconButton(
-                  icon: Icon(_hiddenAppsService.showHiddenApps ? Icons.visibility : Icons.visibility_off, color: _hiddenAppsService.hiddenCount > 0 ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.6)),
-                  tooltip: _hiddenAppsService.showHiddenApps ? 'Hide hidden apps' : 'Show hidden apps (${_hiddenAppsService.hiddenCount})',
+                  icon: Icon(
+                    _hiddenAppsService.showHiddenApps ? Icons.visibility : Icons.visibility_off,
+                    color: _hiddenAppsService.hiddenCount > 0
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  tooltip: _hiddenAppsService.showHiddenApps
+                      ? 'Hide hidden apps'
+                      : 'Show hidden apps (${_hiddenAppsService.hiddenCount})',
                   onPressed: () {
                     setState(() {
                       _hiddenAppsService.toggleShowHidden();
@@ -257,7 +292,14 @@ class _AppLauncherState extends State<AppLauncher> {
 
     if (apps.isEmpty) {
       return Center(
-        child: Text(_launcherService.searchQuery.isEmpty ? 'No applications found' : 'No results for "${_launcherService.searchQuery}"', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+        child: Text(
+          _launcherService.searchQuery.isEmpty
+              ? 'No applications found'
+              : 'No results for "${_launcherService.searchQuery}"',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
       );
     }
 
@@ -276,57 +318,107 @@ class _AppLauncherState extends State<AppLauncher> {
     final isHidden = _hiddenAppsService.isHidden(app.app.id);
     final isFavorite = _favoriteAppsService.isFavorite(app.app.id);
 
-    return ListTile(
-      leading: _iconResolver.buildIcon(app.iconData, size: 40, borderRadius: 8, fallbackIcon: Icons.apps),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(app.app.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
-          ),
-          // Favorite star icon
-          IconButton(
-            icon: Icon(isFavorite ? Icons.star : Icons.star_border, size: 20, color: isFavorite ? Colors.amber : theme.colorScheme.onSurface.withOpacity(0.6)),
-            tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-            onPressed: () {
-              setState(() {
-                _favoriteAppsService.toggleAppFavorite(app.app.id);
-              });
-            },
-          ),
-        ],
-      ),
-      subtitle: app.app.comment != null
-          ? Text(
-              app.app.comment!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withOpacity(0.7)),
-            )
-          : null,
-      trailing: IconButton(
-        icon: Icon(isHidden ? Icons.visibility_off : Icons.visibility, size: 20),
-        tooltip: isHidden ? 'Show this app' : 'Hide this app',
-        onPressed: () {
-          setState(() {
-            _hiddenAppsService.toggleAppHidden(app.app.id);
-          });
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Update selection index when clicking
+          final apps = _launcherService.apps;
+          final index = apps.indexOf(app);
+          if (index != -1) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
+          _onAppTap(app);
         },
+        onHover: (hovering) {
+          if (hovering) {
+            // Update selection index on hover
+            final apps = _launcherService.apps;
+            final index = apps.indexOf(app);
+            if (index != -1 && index != _selectedIndex) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            }
+          }
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.primary.withOpacity(0.5) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ListTile(
+            leading: _iconResolver.buildIcon(
+              app.iconData,
+              size: 40,
+              borderRadius: 8,
+              fallbackIcon: Icons.apps,
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    app.app.name,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                // Favorite star icon
+                IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.star : Icons.star_border,
+                    size: 20,
+                    color: isFavorite
+                        ? Colors.amber
+                        : (isSelected
+                              ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                              : theme.colorScheme.onSurface.withOpacity(0.6)),
+                  ),
+                  tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                  onPressed: () {
+                    setState(() {
+                      _favoriteAppsService.toggleAppFavorite(app.app.id);
+                    });
+                  },
+                ),
+              ],
+            ),
+            subtitle: app.app.comment != null
+                ? Text(
+                    app.app.comment!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isSelected
+                          ? theme.colorScheme.onPrimary.withOpacity(0.9)
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  )
+                : null,
+            trailing: IconButton(
+              icon: Icon(
+                isHidden ? Icons.visibility_off : Icons.visibility,
+                size: 20,
+                color: isSelected
+                    ? theme.colorScheme.onPrimary.withOpacity(0.8)
+                    : theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+              tooltip: isHidden ? 'Show this app' : 'Hide this app',
+              onPressed: () {
+                setState(() {
+                  _hiddenAppsService.toggleAppHidden(app.app.id);
+                });
+              },
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          ),
+        ),
       ),
-      selected: isSelected,
-      selectedTileColor: theme.colorScheme.primary.withOpacity(0.1),
-      onTap: () {
-        // Update selection index when clicking
-        final apps = _launcherService.apps;
-        final index = apps.indexOf(app);
-        if (index != -1) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        }
-        _onAppTap(app);
-      },
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }
