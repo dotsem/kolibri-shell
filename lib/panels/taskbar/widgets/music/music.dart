@@ -190,10 +190,7 @@ class _MusicPanelState extends State<MusicPanel> {
                                     switchInCurve: Curves.easeInOut,
                                     switchOutCurve: Curves.easeInOut,
                                     transitionBuilder: (child, animation) {
-                                      return FadeTransition(
-                                        opacity: animation,
-                                        child: child,
-                                      );
+                                      return FadeTransition(opacity: animation, child: child);
                                     },
                                     child: hovered
                                         ? MusicControls(
