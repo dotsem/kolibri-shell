@@ -36,7 +36,10 @@ class _ClockState extends State<Clock> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(_clockService.now.date, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim)),
+        Text(
+          _clockService.now.date,
+          style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim),
+        ),
         Text(_clockService.now.time),
       ],
     );

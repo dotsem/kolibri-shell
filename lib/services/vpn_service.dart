@@ -15,12 +15,35 @@ class VpnConfig {
   bool isActive;
   bool isConnected;
 
-  VpnConfig({required this.id, required this.name, required this.filePath, this.username = '', this.password = '', this.isActive = false, this.isConnected = false});
+  VpnConfig({
+    required this.id,
+    required this.name,
+    required this.filePath,
+    this.username = '',
+    this.password = '',
+    this.isActive = false,
+    this.isConnected = false,
+  });
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'filePath': filePath, 'username': username, 'password': password, 'isActive': isActive, 'isConnected': isConnected};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'filePath': filePath,
+    'username': username,
+    'password': password,
+    'isActive': isActive,
+    'isConnected': isConnected,
+  };
 
-  factory VpnConfig.fromJson(Map<String, dynamic> json) =>
-      VpnConfig(id: json['id'], name: json['name'], filePath: json['filePath'], username: json['username'] ?? '', password: json['password'] ?? '', isActive: json['isActive'] ?? false, isConnected: json['isConnected'] ?? false);
+  factory VpnConfig.fromJson(Map<String, dynamic> json) => VpnConfig(
+    id: json['id'],
+    name: json['name'],
+    filePath: json['filePath'],
+    username: json['username'] ?? '',
+    password: json['password'] ?? '',
+    isActive: json['isActive'] ?? false,
+    isConnected: json['isConnected'] ?? false,
+  );
 }
 
 class VpnService extends ChangeNotifier {
@@ -58,7 +81,10 @@ class VpnService extends ChangeNotifier {
 
         if (activeConfigId.isNotEmpty) {
           try {
-            _activeConfig = _configs.firstWhere((c) => c.id == activeConfigId, orElse: () => _configs.firstWhere((c) => c.isActive));
+            _activeConfig = _configs.firstWhere(
+              (c) => c.id == activeConfigId,
+              orElse: () => _configs.firstWhere((c) => c.isActive),
+            );
           } catch (e) {
             _log += 'Error finding active config: $e\n';
           }
@@ -102,6 +128,17 @@ class VpnService extends ChangeNotifier {
   }
 
   Future<void> removeConfig(String id) async {
+    // Clean up the imported openvpn3 config if it exists
+    try {
+      final configName = 'hypr-vpn-$id';
+      final removeResult = await Process.run('openvpn3', ['config-remove', '--config', configName]);
+      if (removeResult.exitCode == 0) {
+        _log += 'Removed openvpn3 config: $configName\n';
+      }
+    } catch (e) {
+      _log += 'Error removing openvpn3 config: $e\n';
+    }
+
     _configs.removeWhere((c) => c.id == id);
     if (_activeConfig?.id == id) {
       _activeConfig = null;
@@ -128,26 +165,39 @@ class VpnService extends ChangeNotifier {
 
     try {
       final config = _activeConfig!;
+      final configName = 'hypr-vpn-${config.id}';
 
-      // Import the configuration into openvpn3
-      final importResult = await Process.run('openvpn3', ['config-import', '--config', config.filePath, '--name', 'hypr-vpn-${config.id}', '--persistent']);
+      // Check if the config already exists in openvpn3
+      final listResult = await Process.run('openvpn3', ['configs-list']);
+      final configExists = listResult.stdout.toString().contains(configName);
 
-      if (importResult.exitCode != 0) {
-        _log += 'Failed to import VPN config: ${importResult.stderr}\n';
-        return false;
+      // Only import if it doesn't exist
+      if (!configExists) {
+        final importResult = await Process.run('openvpn3', [
+          'config-import',
+          '--config',
+          config.filePath,
+          '--name',
+          configName,
+          '--persistent',
+        ]);
+
+        if (importResult.exitCode != 0) {
+          _log += 'Failed to import VPN config: ${importResult.stderr}\n';
+          _status = 'Error';
+          notifyListeners();
+          return false;
+        }
+        _log += 'VPN config imported successfully\n';
+      } else {
+        _log += 'Using existing VPN config\n';
       }
 
       // Start the VPN connection
-      // OpenVPN3 will prompt for credentials interactively if needed
-      final args = [
-        'session-start',
-        '--config', 'hypr-vpn-${config.id}',
-        '--timeout', '20',
-        '--config', config.filePath  // Provide the config file directly
-      ];
+      final args = ['session-start', '--config', configName, '--timeout', '20'];
 
       _vpnProcess = await Process.start('openvpn3', args);
-      
+
       // If we have credentials, provide them when prompted
       if (config.username.isNotEmpty && config.password.isNotEmpty) {
         _vpnProcess!.stdin.writeln(config.username);
@@ -190,9 +240,21 @@ class VpnService extends ChangeNotifier {
 
   Future<void> disconnect() async {
     if (_activeConfig != null) {
+      final configName = 'hypr-vpn-${_activeConfig!.id}';
+
       // Try to gracefully disconnect using openvpn3
       try {
-        await Process.run('openvpn3', ['session-manage', '--disconnect', '--config', 'hypr-vpn-${_activeConfig!.id}']);
+        final disconnectResult = await Process.run('openvpn3', [
+          'session-manage',
+          '--disconnect',
+          '--config',
+          configName,
+        ]);
+        if (disconnectResult.exitCode == 0) {
+          _log += 'VPN session disconnected\n';
+        } else {
+          _log += 'Disconnect result: ${disconnectResult.stderr}\n';
+        }
       } catch (e) {
         _log += 'Error during graceful disconnect: $e\n';
       }
@@ -203,12 +265,9 @@ class VpnService extends ChangeNotifier {
         _vpnProcess = null;
       }
 
-      // Clean up the imported config
-      try {
-        await Process.run('openvpn3', ['config-remove', '--config', 'hypr-vpn-${_activeConfig!.id}']);
-      } catch (e) {
-        _log += 'Error removing VPN config: $e\n';
-      }
+      // Note: We don't remove the imported config here anymore
+      // This allows it to persist for the next connection
+      // If you want to remove it, the user can delete the VPN configuration entirely
 
       _activeConfig!.isConnected = false;
       _activeConfig!.isActive = false;

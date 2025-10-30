@@ -33,7 +33,16 @@ class BatteryHealth {
   final int chargeLevel; // 0-100
   final bool isCharging;
 
-  BatteryHealth({required this.present, required this.currentCapacity, required this.designCapacity, required this.healthPercentage, required this.cycleCount, required this.status, required this.chargeLevel, required this.isCharging});
+  BatteryHealth({
+    required this.present,
+    required this.currentCapacity,
+    required this.designCapacity,
+    required this.healthPercentage,
+    required this.cycleCount,
+    required this.status,
+    required this.chargeLevel,
+    required this.isCharging,
+  });
 
   HealthStatus get healthStatus {
     if (!present) return HealthStatus.good;
@@ -56,7 +65,17 @@ class DiskHealth {
   final int? temperature;
   final int? powerOnHours;
 
-  DiskHealth({required this.device, required this.mountPoint, required this.totalSpace, required this.usedSpace, required this.freeSpace, required this.usagePercentage, required this.smart, this.temperature, this.powerOnHours});
+  DiskHealth({
+    required this.device,
+    required this.mountPoint,
+    required this.totalSpace,
+    required this.usedSpace,
+    required this.freeSpace,
+    required this.usagePercentage,
+    required this.smart,
+    this.temperature,
+    this.powerOnHours,
+  });
 
   HealthStatus get healthStatus {
     if (!smart) return HealthStatus.critical;
@@ -74,7 +93,12 @@ class PackageUpdates {
   final List<String> packages;
   final DateTime lastChecked;
 
-  PackageUpdates({required this.totalUpdates, required this.securityUpdates, required this.packages, required this.lastChecked});
+  PackageUpdates({
+    required this.totalUpdates,
+    required this.securityUpdates,
+    required this.packages,
+    required this.lastChecked,
+  });
 
   HealthStatus get healthStatus {
     if (securityUpdates > 10) return HealthStatus.critical;
@@ -93,7 +117,13 @@ class KernelInfo {
   final bool isLTS;
   final String releaseDate;
 
-  KernelInfo({required this.currentVersion, required this.latestAvailable, required this.isLatest, required this.isLTS, required this.releaseDate});
+  KernelInfo({
+    required this.currentVersion,
+    required this.latestAvailable,
+    required this.isLatest,
+    required this.isLTS,
+    required this.releaseDate,
+  });
 
   HealthStatus get healthStatus {
     if (isLatest) return HealthStatus.excellent;
@@ -118,7 +148,11 @@ class ServicesHealth {
   final int totalServices;
   final int activeServices;
 
-  ServicesHealth({required this.failedServices, required this.totalServices, required this.activeServices});
+  ServicesHealth({
+    required this.failedServices,
+    required this.totalServices,
+    required this.activeServices,
+  });
 
   HealthStatus get healthStatus {
     if (failedServices.isEmpty) return HealthStatus.excellent;
@@ -139,10 +173,25 @@ class SystemHealth {
   final double memoryUsage;
   final DateTime lastCheck;
 
-  SystemHealth({this.battery, required this.disks, required this.packages, required this.kernel, required this.services, required this.cpuTemp, required this.memoryUsage, required this.lastCheck});
+  SystemHealth({
+    this.battery,
+    required this.disks,
+    required this.packages,
+    required this.kernel,
+    required this.services,
+    required this.cpuTemp,
+    required this.memoryUsage,
+    required this.lastCheck,
+  });
 
   HealthStatus get overallStatus {
-    final statuses = <HealthStatus>[if (battery != null) battery!.healthStatus, ...disks.map((d) => d.healthStatus), packages.healthStatus, kernel.healthStatus, services.healthStatus];
+    final statuses = <HealthStatus>[
+      if (battery != null) battery!.healthStatus,
+      ...disks.map((d) => d.healthStatus),
+      packages.healthStatus,
+      kernel.healthStatus,
+      services.healthStatus,
+    ];
 
     if (statuses.any((s) => s == HealthStatus.critical)) return HealthStatus.critical;
     if (statuses.any((s) => s == HealthStatus.warning)) return HealthStatus.warning;
@@ -166,19 +215,48 @@ class SystemHealth {
 
     // Battery issues
     if (battery != null && battery!.healthStatus != HealthStatus.excellent) {
-      issuesList.add(HealthIssue(title: 'Battery Health Degraded', description: 'Battery health is at ${battery!.healthPercentage.toStringAsFixed(1)}% with ${battery!.cycleCount} cycles', status: battery!.healthStatus, component: 'Battery'));
+      issuesList.add(
+        HealthIssue(
+          title: 'Battery Health Degraded',
+          description:
+              'Battery health is at ${battery!.healthPercentage.toStringAsFixed(1)}% with ${battery!.cycleCount} cycles',
+          status: battery!.healthStatus,
+          component: 'Battery',
+        ),
+      );
     }
 
     // Disk issues
     for (final disk in disks) {
       if (disk.healthStatus == HealthStatus.critical) {
         if (!disk.smart) {
-          issuesList.add(HealthIssue(title: 'Disk SMART Failure', description: 'SMART health check failed for ${disk.device} (${disk.mountPoint})', status: HealthStatus.critical, component: 'Disk'));
+          issuesList.add(
+            HealthIssue(
+              title: 'Disk SMART Failure',
+              description: 'SMART health check failed for ${disk.device} (${disk.mountPoint})',
+              status: HealthStatus.critical,
+              component: 'Disk',
+            ),
+          );
         } else if (disk.usagePercentage >= 95) {
-          issuesList.add(HealthIssue(title: 'Disk Almost Full', description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full', status: HealthStatus.critical, component: 'Disk'));
+          issuesList.add(
+            HealthIssue(
+              title: 'Disk Almost Full',
+              description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full',
+              status: HealthStatus.critical,
+              component: 'Disk',
+            ),
+          );
         }
       } else if (disk.healthStatus == HealthStatus.warning) {
-        issuesList.add(HealthIssue(title: 'Disk Space Low', description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full', status: HealthStatus.warning, component: 'Disk'));
+        issuesList.add(
+          HealthIssue(
+            title: 'Disk Space Low',
+            description: '${disk.mountPoint} is ${disk.usagePercentage.toStringAsFixed(1)}% full',
+            status: HealthStatus.warning,
+            component: 'Disk',
+          ),
+        );
       }
     }
 
@@ -187,20 +265,42 @@ class SystemHealth {
       issuesList.add(
         HealthIssue(
           title: 'Security Updates Available',
-          description: '${packages.securityUpdates} critical security update${packages.securityUpdates > 1 ? 's' : ''} available',
+          description:
+              '${packages.securityUpdates} critical security update${packages.securityUpdates > 1 ? 's' : ''} available',
           status: packages.securityUpdates > 10 ? HealthStatus.critical : HealthStatus.warning,
           component: 'Packages',
         ),
       );
     } else if (packages.totalUpdates > 50) {
-      issuesList.add(HealthIssue(title: 'Many Updates Available', description: '${packages.totalUpdates} package updates available', status: HealthStatus.warning, component: 'Packages'));
+      issuesList.add(
+        HealthIssue(
+          title: 'Many Updates Available',
+          description: '${packages.totalUpdates} package updates available',
+          status: HealthStatus.warning,
+          component: 'Packages',
+        ),
+      );
     } else if (packages.totalUpdates > 20) {
-      issuesList.add(HealthIssue(title: 'Updates Available', description: '${packages.totalUpdates} package updates available', status: HealthStatus.good, component: 'Packages'));
+      issuesList.add(
+        HealthIssue(
+          title: 'Updates Available',
+          description: '${packages.totalUpdates} package updates available',
+          status: HealthStatus.good,
+          component: 'Packages',
+        ),
+      );
     }
 
     // Kernel issues
     if (!kernel.isLatest) {
-      issuesList.add(HealthIssue(title: 'Kernel Outdated', description: 'Running ${kernel.currentVersion}, latest is ${kernel.latestAvailable}', status: kernel.healthStatus, component: 'Kernel'));
+      issuesList.add(
+        HealthIssue(
+          title: 'Kernel Outdated',
+          description: 'Running ${kernel.currentVersion}, latest is ${kernel.latestAvailable}',
+          status: kernel.healthStatus,
+          component: 'Kernel',
+        ),
+      );
     }
 
     // Service issues
@@ -208,7 +308,8 @@ class SystemHealth {
       issuesList.add(
         HealthIssue(
           title: 'Failed System Services',
-          description: '${services.failedServices.length} service${services.failedServices.length > 1 ? 's' : ''} failed: ${services.failedServices.take(3).join(", ")}${services.failedServices.length > 3 ? "..." : ""}',
+          description:
+              '${services.failedServices.length} service${services.failedServices.length > 1 ? 's' : ''} failed: ${services.failedServices.take(3).join(", ")}${services.failedServices.length > 3 ? "..." : ""}',
           status: services.healthStatus,
           component: 'Services',
         ),
@@ -219,10 +320,12 @@ class SystemHealth {
   }
 
   /// Get critical issues only
-  List<HealthIssue> get criticalIssues => issues.where((i) => i.status == HealthStatus.critical).toList();
+  List<HealthIssue> get criticalIssues =>
+      issues.where((i) => i.status == HealthStatus.critical).toList();
 
   /// Get warning issues only
-  List<HealthIssue> get warningIssues => issues.where((i) => i.status == HealthStatus.warning).toList();
+  List<HealthIssue> get warningIssues =>
+      issues.where((i) => i.status == HealthStatus.warning).toList();
 }
 
 /// Individual health issue
@@ -232,7 +335,12 @@ class HealthIssue {
   final HealthStatus status;
   final String component;
 
-  HealthIssue({required this.title, required this.description, required this.status, required this.component});
+  HealthIssue({
+    required this.title,
+    required this.description,
+    required this.status,
+    required this.component,
+  });
 }
 
 /// System health monitoring service
@@ -308,7 +416,15 @@ class SystemHealthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait([_checkBattery(), _checkDisks(), _checkPackageUpdates(), _checkKernel(), _checkServices(), _getCpuTemp(), _getMemoryUsage()]);
+      final results = await Future.wait([
+        _checkBattery(),
+        _checkDisks(),
+        _checkPackageUpdates(),
+        _checkKernel(),
+        _checkServices(),
+        _getCpuTemp(),
+        _getMemoryUsage(),
+      ]);
 
       _currentHealth = SystemHealth(
         battery: results[0] as BatteryHealth?,
@@ -348,19 +464,28 @@ class SystemHealthService extends ChangeNotifier {
 
       final capacity = await _readSysFile('$battery/capacity');
       final status = await _readSysFile('$battery/status');
-      final chargeNow = await _readSysFile('$battery/charge_now');
-      final chargeFull = await _readSysFile('$battery/charge_full');
-      final chargeFullDesign = await _readSysFile('$battery/charge_full_design');
+
+      // Try energy_* first, then fallback to charge_*
+      String energyNow = await _readSysFile('$battery/energy_now');
+      String energyFull = await _readSysFile('$battery/energy_full');
+      String energyFullDesign = await _readSysFile('$battery/energy_full_design');
+
+      if (energyNow == '0' || energyFull == '0') {
+        energyNow = await _readSysFile('$battery/charge_now');
+        energyFull = await _readSysFile('$battery/charge_full');
+        energyFullDesign = await _readSysFile('$battery/charge_full_design');
+      }
+
       final cycleCount = await _readSysFile('$battery/cycle_count');
 
-      final currentCap = int.tryParse(chargeNow) ?? 0;
-      final fullCap = int.tryParse(chargeFull) ?? 1;
-      final designCap = int.tryParse(chargeFullDesign) ?? 1;
+      final currentCap = int.tryParse(energyNow) ?? 0;
+      final fullCap = int.tryParse(energyFull) ?? 1;
+      final designCap = int.tryParse(energyFullDesign) ?? 1;
       final health = (fullCap / designCap * 100).clamp(0.0, 100.0).toDouble();
 
       return BatteryHealth(
         present: true,
-        currentCapacity: currentCap ~/ 1000, // Convert to mAh
+        currentCapacity: currentCap ~/ 1000, // Convert to mAh/mWh
         designCapacity: designCap ~/ 1000,
         healthPercentage: health,
         cycleCount: int.tryParse(cycleCount) ?? 0,
@@ -427,7 +552,19 @@ class SystemHealthService extends ChangeNotifier {
           // smartctl not available or requires sudo
         }
 
-        disks.add(DiskHealth(device: device, mountPoint: mountPoint, totalSpace: total, usedSpace: used, freeSpace: free, usagePercentage: usage, smart: smartHealthy, temperature: temp, powerOnHours: powerOnHours));
+        disks.add(
+          DiskHealth(
+            device: device,
+            mountPoint: mountPoint,
+            totalSpace: total,
+            usedSpace: used,
+            freeSpace: free,
+            usagePercentage: usage,
+            smart: smartHealthy,
+            temperature: temp,
+            powerOnHours: powerOnHours,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error checking disks: $e');
@@ -451,11 +588,21 @@ class SystemHealthService extends ChangeNotifier {
         case PackageManager.nix:
           return await _checkNixUpdates();
         default:
-          return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+          return PackageUpdates(
+            totalUpdates: 0,
+            securityUpdates: 0,
+            packages: [],
+            lastChecked: DateTime.now(),
+          );
       }
     } catch (e) {
       debugPrint('Error checking package updates: $e');
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
@@ -463,10 +610,18 @@ class SystemHealthService extends ChangeNotifier {
     try {
       // Check for upgradable packages (no sudo needed)
       final result = await Process.run('apt', ['list', '--upgradable']);
-      final lines = result.stdout.toString().split('\n').skip(1).where((l) => l.isNotEmpty).toList();
+      final lines = result.stdout
+          .toString()
+          .split('\n')
+          .skip(1)
+          .where((l) => l.isNotEmpty)
+          .toList();
 
       // Check for security updates
-      final secResult = await Process.run('sh', ['-c', 'apt list --upgradable 2>/dev/null | grep -i security']);
+      final secResult = await Process.run('sh', [
+        '-c',
+        'apt list --upgradable 2>/dev/null | grep -i security',
+      ]);
       final secLines = secResult.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();
 
       return PackageUpdates(
@@ -477,67 +632,131 @@ class SystemHealthService extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('Error checking apt updates: $e');
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
   Future<PackageUpdates> _checkPacmanUpdates() async {
     try {
-      // Check for updates (no sudo needed)
+      // Use checkupdates (no sudo needed, from pacman-contrib)
       final result = await Process.run('checkupdates', []);
-      if (result.exitCode != 0) {
-        // checkupdates not installed, try pacman -Qu directly
-        final fallbackResult = await Process.run('checkupdates', []);
-        final lines = fallbackResult.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();
-        return PackageUpdates(totalUpdates: lines.length, securityUpdates: 0, packages: lines.take(50).toList(), lastChecked: DateTime.now());
+
+      // checkupdates returns exit code 2 when there are no updates, which is normal
+      if (result.exitCode != 0 && result.exitCode != 2) {
+        debugPrint('checkupdates failed with exit code ${result.exitCode}');
+        return PackageUpdates(
+          totalUpdates: 0,
+          securityUpdates: 0,
+          packages: [],
+          lastChecked: DateTime.now(),
+        );
       }
 
-      final lines = result.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();
+      final lines = result.stdout
+          .toString()
+          .split('\n')
+          .where((l) => l.isNotEmpty && !l.startsWith('::'))
+          .toList();
 
       return PackageUpdates(
         totalUpdates: lines.length,
-        securityUpdates: 0, // Arch doesn't distinguish security updates
+        securityUpdates: 0, // Arch doesn't distinguish security updates in checkupdates
         packages: lines.take(50).toList(),
         lastChecked: DateTime.now(),
       );
     } catch (e) {
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      debugPrint('Error checking pacman updates: $e');
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
   Future<PackageUpdates> _checkDnfUpdates() async {
     try {
       final result = await Process.run('dnf', ['check-update']);
-      final lines = result.stdout.toString().split('\n').skip(1).where((l) => l.isNotEmpty).toList();
+      final lines = result.stdout
+          .toString()
+          .split('\n')
+          .skip(1)
+          .where((l) => l.isNotEmpty)
+          .toList();
 
       final secResult = await Process.run('dnf', ['updateinfo', 'list', 'security']);
       final secLines = secResult.stdout.toString().split('\n').where((l) => l.isNotEmpty).toList();
 
-      return PackageUpdates(totalUpdates: lines.length, securityUpdates: secLines.length, packages: lines.take(50).toList(), lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: lines.length,
+        securityUpdates: secLines.length,
+        packages: lines.take(50).toList(),
+        lastChecked: DateTime.now(),
+      );
     } catch (e) {
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
   Future<PackageUpdates> _checkZypperUpdates() async {
     try {
       final result = await Process.run('zypper', ['list-updates']);
-      final lines = result.stdout.toString().split('\n').skip(4).where((l) => l.isNotEmpty).toList();
+      final lines = result.stdout
+          .toString()
+          .split('\n')
+          .skip(4)
+          .where((l) => l.isNotEmpty)
+          .toList();
 
-      return PackageUpdates(totalUpdates: lines.length, securityUpdates: 0, packages: lines.take(50).toList(), lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: lines.length,
+        securityUpdates: 0,
+        packages: lines.take(50).toList(),
+        lastChecked: DateTime.now(),
+      );
     } catch (e) {
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
   Future<PackageUpdates> _checkNixUpdates() async {
     try {
       final result = await Process.run('nix-env', ['-u', '--dry-run']);
-      final lines = result.stdout.toString().split('\n').where((l) => l.contains('installing')).toList();
+      final lines = result.stdout
+          .toString()
+          .split('\n')
+          .where((l) => l.contains('installing'))
+          .toList();
 
-      return PackageUpdates(totalUpdates: lines.length, securityUpdates: 0, packages: lines.take(50).toList(), lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: lines.length,
+        securityUpdates: 0,
+        packages: lines.take(50).toList(),
+        lastChecked: DateTime.now(),
+      );
     } catch (e) {
-      return PackageUpdates(totalUpdates: 0, securityUpdates: 0, packages: [], lastChecked: DateTime.now());
+      return PackageUpdates(
+        totalUpdates: 0,
+        securityUpdates: 0,
+        packages: [],
+        lastChecked: DateTime.now(),
+      );
     }
   }
 
@@ -552,10 +771,15 @@ class SystemHealthService extends ChangeNotifier {
       bool isLatest = true;
 
       try {
-        final curlResult = await Process.run('curl', ['-s', 'https://www.kernel.org/finger_banner']);
+        final curlResult = await Process.run('curl', [
+          '-s',
+          'https://www.kernel.org/finger_banner',
+        ]);
         if (curlResult.exitCode == 0) {
           final output = curlResult.stdout.toString();
-          final match = RegExp(r'The latest stable version.*?is:\s*(\d+\.\d+\.\d+)').firstMatch(output);
+          final match = RegExp(
+            r'The latest stable version.*?is:\s*(\d+\.\d+\.\d+)',
+          ).firstMatch(output);
           if (match != null) {
             latestVersion = match.group(1)!;
             isLatest = currentVersion.contains(latestVersion.split('.').take(2).join('.'));
@@ -565,10 +789,22 @@ class SystemHealthService extends ChangeNotifier {
         // Network error or curl not available
       }
 
-      return KernelInfo(currentVersion: currentVersion, latestAvailable: latestVersion, isLatest: isLatest, isLTS: currentVersion.contains('lts') || currentVersion.contains('.0.'), releaseDate: 'Unknown');
+      return KernelInfo(
+        currentVersion: currentVersion,
+        latestAvailable: latestVersion,
+        isLatest: isLatest,
+        isLTS: currentVersion.contains('lts') || currentVersion.contains('.0.'),
+        releaseDate: 'Unknown',
+      );
     } catch (e) {
       debugPrint('Error checking kernel: $e');
-      return KernelInfo(currentVersion: 'Unknown', latestAvailable: 'Unknown', isLatest: true, isLTS: false, releaseDate: 'Unknown');
+      return KernelInfo(
+        currentVersion: 'Unknown',
+        latestAvailable: 'Unknown',
+        isLatest: true,
+        isLTS: false,
+        releaseDate: 'Unknown',
+      );
     }
   }
 
@@ -581,15 +817,26 @@ class SystemHealthService extends ChangeNotifier {
       }
 
       final lines = result.stdout.toString().split('\n');
-      final failedServices = lines.where((l) => l.contains('●') && l.contains('failed')).map((l) => l.split(RegExp(r'\s+'))[1]).toList();
+      final failedServices = lines
+          .where((l) => l.contains('●') && l.contains('failed'))
+          .map((l) => l.split(RegExp(r'\s+'))[1])
+          .toList();
 
       // Get total services count
-      final allResult = await Process.run('systemctl', ['list-units', '--type=service', '--no-pager']);
+      final allResult = await Process.run('systemctl', [
+        'list-units',
+        '--type=service',
+        '--no-pager',
+      ]);
       final allLines = allResult.stdout.toString().split('\n');
       final totalServices = allLines.where((l) => l.contains('.service')).length;
       final activeServices = allLines.where((l) => l.contains('active')).length;
 
-      return ServicesHealth(failedServices: failedServices, totalServices: totalServices, activeServices: activeServices);
+      return ServicesHealth(
+        failedServices: failedServices,
+        totalServices: totalServices,
+        activeServices: activeServices,
+      );
     } catch (e) {
       debugPrint('Error checking services: $e');
       return ServicesHealth(failedServices: [], totalServices: 0, activeServices: 0);
@@ -599,11 +846,49 @@ class SystemHealthService extends ChangeNotifier {
   /// Get CPU temperature
   Future<double> _getCpuTemp() async {
     try {
-      final tempPath = '/sys/class/thermal/thermal_zone0/temp';
-      final tempFile = File(tempPath);
-      if (await tempFile.exists()) {
-        final temp = await tempFile.readAsString();
-        return double.parse(temp.trim()) / 1000;
+      // Try multiple sources for CPU temperature
+      final sources = [
+        '/sys/class/thermal/thermal_zone0/temp',
+        '/sys/class/thermal/thermal_zone1/temp',
+        '/sys/class/hwmon/hwmon0/temp1_input',
+        '/sys/class/hwmon/hwmon1/temp1_input',
+        '/sys/class/hwmon/hwmon2/temp1_input',
+      ];
+
+      for (final path in sources) {
+        try {
+          final tempFile = File(path);
+          if (await tempFile.exists()) {
+            final temp = await tempFile.readAsString();
+            final tempValue = double.parse(temp.trim()) / 1000;
+            // Only return reasonable CPU temperatures (between 0-120°C)
+            if (tempValue > 0 && tempValue < 120) {
+              return tempValue;
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      // Try using sensors command if available
+      try {
+        final sensorsResult = await Process.run('sensors', ['-u']);
+        if (sensorsResult.exitCode == 0) {
+          final output = sensorsResult.stdout.toString();
+          // Look for CPU or core temperature
+          final tempMatch = RegExp(
+            r'(coretemp|k10temp|cpu).*?temp\d+_input:\s*(\d+\.?\d*)',
+          ).firstMatch(output);
+          if (tempMatch != null) {
+            final temp = double.tryParse(tempMatch.group(2)!);
+            if (temp != null && temp > 0 && temp < 120) {
+              return temp;
+            }
+          }
+        }
+      } catch (e) {
+        // sensors not available
       }
     } catch (e) {
       debugPrint('Error reading CPU temp: $e');
@@ -657,7 +942,11 @@ class SystemHealthService extends ChangeNotifier {
   Future<void> _saveHealthData() async {
     if (_currentHealth == null) return;
 
-    await _configManager.updateConfig(systemConfigPath, {'lastHealthCheck': _currentHealth!.lastCheck.toIso8601String(), 'overallStatus': _currentHealth!.overallStatus.name, 'issueCount': _currentHealth!.issueCount});
+    await _configManager.updateConfig(systemConfigPath, {
+      'lastHealthCheck': _currentHealth!.lastCheck.toIso8601String(),
+      'overallStatus': _currentHealth!.overallStatus.name,
+      'issueCount': _currentHealth!.issueCount,
+    });
   }
 
   /// Force update package cache (may require sudo)
@@ -669,6 +958,7 @@ class SystemHealthService extends ChangeNotifier {
           result = await Process.run('pkexec', ['apt', 'update']);
           break;
         case PackageManager.pacman:
+          // For pacman, use pkexec to update the databases
           result = await Process.run('pkexec', ['pacman', '-Sy']);
           break;
         case PackageManager.dnf:
@@ -685,6 +975,8 @@ class SystemHealthService extends ChangeNotifier {
       }
 
       if (result.exitCode == 0 || result.exitCode == 100) {
+        // After updating cache, wait a moment then re-check health
+        await Future.delayed(const Duration(milliseconds: 500));
         await checkHealth();
         return true;
       }

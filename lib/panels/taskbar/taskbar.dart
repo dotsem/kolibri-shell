@@ -38,12 +38,18 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
       Future.microtask(() async {
         while (true) {
           final context = musicPlayerKey.currentContext;
-          final windowUsed = await FlLinuxWindowManager.instance.isWindowIdUsed(WindowIds.musicPlayer);
+          final windowUsed = await FlLinuxWindowManager.instance.isWindowIdUsed(
+            WindowIds.musicPlayer,
+          );
 
           if (context != null && windowUsed) {
             final box = context.findRenderObject() as RenderBox;
             final position = box.localToGlobal(Offset.zero);
-            FlLinuxWindowManager.instance.setLayerMargin(left: position.dx.toInt(), top: -taskbarHeight, windowId: WindowIds.musicPlayer);
+            FlLinuxWindowManager.instance.setLayerMargin(
+              left: position.dx.toInt(),
+              top: -taskbarHeight,
+              windowId: WindowIds.musicPlayer,
+            );
             break;
           }
 
@@ -73,14 +79,19 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                   child: Row(
                     children: [
                       SidebarToggleButton(
-                        widget: SvgPicture.asset("assets/icons/arch-symbolic.svg", colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn), height: 28, width: 28),
+                        widget: SvgPicture.asset(
+                          "assets/icons/arch-symbolic.svg",
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                          height: 28,
+                          width: 28,
+                        ),
                         sidebarId: WindowIds.leftSidebar,
                         taskbarId: widget.windowId,
                         windowId: widget.windowId,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, right: 8),
-                        child: Workspaces(monitorIndex: widget.monitorIndex),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, right: 8),
+                        child: Workspaces(monitorIndex: 0),
                       ),
                       MusicPanel(key: musicPlayerKey),
                     ],
@@ -99,11 +110,19 @@ class _TaskbarWidgetState extends State<TaskbarWidget> {
                   right: 0,
                   child: Row(
                     children: [
-                      Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: BatteryIndicator()),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, right: 4),
+                        child: BatteryIndicator(),
+                      ),
 
                       Padding(padding: const EdgeInsets.only(left: 4, right: 4), child: Clock()),
 
-                      SidebarToggleButton(widget: SystemTrayWidget(), sidebarId: WindowIds.rightSidebar, taskbarId: widget.windowId, windowId: widget.windowId),
+                      SidebarToggleButton(
+                        widget: SystemTrayWidget(),
+                        sidebarId: WindowIds.rightSidebar,
+                        taskbarId: widget.windowId,
+                        windowId: widget.windowId,
+                      ),
                     ],
                   ),
                 ),

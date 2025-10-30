@@ -26,7 +26,14 @@ class _HealthTabState extends State<HealthTab> {
         builder: (context, service, _) {
           if (service.isChecking && service.currentHealth == null) {
             return const Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(), SizedBox(height: 16), Text('Checking system health...')]),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Checking system health...'),
+                ],
+              ),
             );
           }
 
@@ -40,7 +47,11 @@ class _HealthTabState extends State<HealthTab> {
                   const SizedBox(height: 16),
                   const Text('Unable to check system health'),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(onPressed: () => service.checkHealth(), icon: const Icon(Icons.refresh), label: const Text('Retry')),
+                  ElevatedButton.icon(
+                    onPressed: () => service.checkHealth(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
                 ],
               ),
             );
@@ -59,7 +70,10 @@ class _HealthTabState extends State<HealthTab> {
                   _buildPackageUpdatesCard(context, health.packages, service),
                   const SizedBox(height: 16),
                   _buildKernelCard(context, health.kernel),
-                  if (health.battery != null) ...[const SizedBox(height: 16), _buildBatteryCard(context, health.battery!)],
+                  if (health.battery != null) ...[
+                    const SizedBox(height: 16),
+                    _buildBatteryCard(context, health.battery!),
+                  ],
                   const SizedBox(height: 16),
                   _buildDisksCard(context, health.disks),
                   const SizedBox(height: 16),
@@ -77,7 +91,11 @@ class _HealthTabState extends State<HealthTab> {
     );
   }
 
-  Widget _buildOverallHealthCard(BuildContext context, SystemHealth health, SystemHealthService service) {
+  Widget _buildOverallHealthCard(
+    BuildContext context,
+    SystemHealth health,
+    SystemHealthService service,
+  ) {
     final status = health.overallStatus;
     final color = _getStatusColor(status);
     final icon = _getStatusIcon(status);
@@ -92,10 +110,17 @@ class _HealthTabState extends State<HealthTab> {
             const SizedBox(height: 12),
             Text(
               _getStatusText(status),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(health.issueCount == 0 ? 'All systems operational' : '${health.issueCount} issue${health.issueCount > 1 ? 's' : ''} detected', style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              health.issueCount == 0
+                  ? 'All systems operational'
+                  : '${health.issueCount} issue${health.issueCount > 1 ? 's' : ''} detected',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
             // Show critical and warning issues
             if (health.issues.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -106,27 +131,46 @@ class _HealthTabState extends State<HealthTab> {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          Icon(_getStatusIcon(issue.status), size: 16, color: _getStatusColor(issue.status)),
+                          Icon(
+                            _getStatusIcon(issue.status),
+                            size: 16,
+                            color: _getStatusColor(issue.status),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(issue.title, style: TextStyle(fontSize: 13, color: _getStatusColor(issue.status))),
+                            child: Text(
+                              issue.title,
+                              style: TextStyle(fontSize: 13, color: _getStatusColor(issue.status)),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-              if (health.issues.length > 5) TextButton(onPressed: () => _showAllIssues(context, health), child: Text('View all ${health.issues.length} issues')),
+              if (health.issues.length > 5)
+                TextButton(
+                  onPressed: () => _showAllIssues(context, health),
+                  child: Text('View all ${health.issues.length} issues'),
+                ),
             ],
-            if (service.isChecking) ...[const SizedBox(height: 16), const LinearProgressIndicator()],
+            if (service.isChecking) ...[
+              const SizedBox(height: 16),
+              const LinearProgressIndicator(),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPackageUpdatesCard(BuildContext context, PackageUpdates packages, SystemHealthService service) {
+  Widget _buildPackageUpdatesCard(
+    BuildContext context,
+    PackageUpdates packages,
+    SystemHealthService service,
+  ) {
     final status = packages.healthStatus;
     final color = _getStatusColor(status);
+    final isPacman = service.packageManager == PackageManager.pacman;
 
     return Card(
       child: ExpansionTile(
@@ -141,7 +185,13 @@ class _HealthTabState extends State<HealthTab> {
           children: [
             Icon(_getStatusIcon(status), color: color, size: 20),
             const SizedBox(width: 8),
-            if (!service.isChecking) IconButton(icon: const Icon(Icons.refresh), tooltip: 'Update package list (requires password)', onPressed: () => _updatePackageCache(context, service)),
+            // Only show update button for non-pacman systems (pacman uses sudoless checkupdates)
+            if (!service.isChecking && !isPacman)
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Update package list (requires password)',
+                onPressed: () => _updatePackageCache(context, service),
+              ),
           ],
         ),
         children: [
@@ -153,7 +203,10 @@ class _HealthTabState extends State<HealthTab> {
                 leading: const Icon(Icons.security, color: Colors.red),
                 title: Text('${packages.securityUpdates} Security Updates'),
                 subtitle: const Text('Update as soon as possible'),
-                trailing: ElevatedButton(onPressed: () => _showUpdateCommand(context, service.packageManager), child: const Text('How to Update')),
+                trailing: ElevatedButton(
+                  onPressed: () => _showUpdateCommand(context, service.packageManager),
+                  child: const Text('How to Update'),
+                ),
               ),
             const Divider(),
             Padding(
@@ -166,7 +219,10 @@ class _HealthTabState extends State<HealthTab> {
                   ...packages.packages.take(10).map((pkg) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text('• ${pkg.split(' ').first}', style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                      child: Text(
+                        '• ${pkg.split(' ').first}',
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
                     );
                   }),
                   if (packages.packages.length > 10)
@@ -213,7 +269,11 @@ class _HealthTabState extends State<HealthTab> {
 
     return Card(
       child: ExpansionTile(
-        leading: Icon(battery.isCharging ? Icons.battery_charging_full : Icons.battery_std, color: color, size: 32),
+        leading: Icon(
+          battery.isCharging ? Icons.battery_charging_full : Icons.battery_std,
+          color: color,
+          size: 32,
+        ),
         title: const Text('Battery Health'),
         subtitle: Text(
           '${battery.healthPercentage.toStringAsFixed(1)}% health • '
@@ -242,7 +302,15 @@ class _HealthTabState extends State<HealthTab> {
   Widget _buildDisksCard(BuildContext context, List<DiskHealth> disks) {
     return Card(
       child: ExpansionTile(
-        leading: Icon(Icons.storage, color: _getStatusColor(disks.isEmpty ? HealthStatus.good : disks.map((d) => d.healthStatus).reduce((a, b) => a.index > b.index ? a : b)), size: 32),
+        leading: Icon(
+          Icons.storage,
+          color: _getStatusColor(
+            disks.isEmpty
+                ? HealthStatus.good
+                : disks.map((d) => d.healthStatus).reduce((a, b) => a.index > b.index ? a : b),
+          ),
+          size: 32,
+        ),
         title: const Text('Disk Health'),
         subtitle: Text('${disks.length} disk${disks.length != 1 ? 's' : ''} monitored'),
         children: disks.map((disk) => _buildDiskTile(context, disk)).toList(),
@@ -262,17 +330,25 @@ class _HealthTabState extends State<HealthTab> {
         children: [
           Text(disk.device),
           const SizedBox(height: 4),
-          LinearProgressIndicator(value: disk.usagePercentage / 100, backgroundColor: Colors.grey.shade200, color: color),
+          LinearProgressIndicator(
+            value: disk.usagePercentage / 100,
+            backgroundColor: Colors.grey.shade200,
+            color: color,
+          ),
           const SizedBox(height: 4),
           Text(
             '${_formatBytes(disk.usedSpace)} / ${_formatBytes(disk.totalSpace)} '
             '(${disk.usagePercentage.toStringAsFixed(1)}%)',
             style: const TextStyle(fontSize: 11),
           ),
-          if (disk.temperature != null) Text('Temp: ${disk.temperature}°C', style: const TextStyle(fontSize: 11)),
+          if (disk.temperature != null)
+            Text('Temp: ${disk.temperature}°C', style: const TextStyle(fontSize: 11)),
         ],
       ),
-      trailing: Icon(disk.smart ? Icons.check_circle : Icons.error, color: disk.smart ? Colors.green : Colors.red),
+      trailing: Icon(
+        disk.smart ? Icons.check_circle : Icons.error,
+        color: disk.smart ? Colors.green : Colors.red,
+      ),
     );
   }
 
@@ -291,14 +367,20 @@ class _HealthTabState extends State<HealthTab> {
         trailing: Icon(_getStatusIcon(status), color: color, size: 20),
         children: [
           if (services.failedServices.isEmpty)
-            const Padding(padding: EdgeInsets.all(16), child: Text('All services running normally ✅'))
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('All services running normally ✅'),
+            )
           else
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Failed Services:', style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.red)),
+                  Text(
+                    'Failed Services:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.red),
+                  ),
                   const SizedBox(height: 8),
                   ...services.failedServices.map((service) {
                     return Padding(
@@ -308,7 +390,10 @@ class _HealthTabState extends State<HealthTab> {
                           const Icon(Icons.error, color: Colors.red, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(service, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                            child: Text(
+                              service,
+                              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -339,7 +424,11 @@ class _HealthTabState extends State<HealthTab> {
     );
   }
 
-  Widget _buildLastCheckedInfo(BuildContext context, DateTime lastCheck, SystemHealthService service) {
+  Widget _buildLastCheckedInfo(
+    BuildContext context,
+    DateTime lastCheck,
+    SystemHealthService service,
+  ) {
     final now = DateTime.now();
     final diff = now.difference(lastCheck);
     String timeAgo;
@@ -359,10 +448,19 @@ class _HealthTabState extends State<HealthTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Last checked: $timeAgo', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text(
+            'Last checked: $timeAgo',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
           ElevatedButton.icon(
             onPressed: service.isChecking ? null : () => service.checkHealth(),
-            icon: service.isChecking ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+            icon: service.isChecking
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
             label: const Text('Refresh'),
           ),
         ],
@@ -463,7 +561,10 @@ class _HealthTabState extends State<HealthTab> {
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey.shade900, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: SelectableText(
                 command,
                 style: const TextStyle(fontFamily: 'monospace', color: Colors.white),
@@ -491,11 +592,19 @@ class _HealthTabState extends State<HealthTab> {
             Text('You will be prompted for your password (via pkexec).'),
             SizedBox(height: 12),
             Text('This does NOT install updates, only checks what\'s available.'),
+            SizedBox(height: 12),
+            Text(
+              'Note: Arch Linux users don\'t need this - checkupdates runs automatically without sudo.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Continue')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
         ],
       ),
     );
@@ -515,7 +624,10 @@ class _HealthTabState extends State<HealthTab> {
             SizedBox(height: 16),
             Text('Updating package list...'),
             SizedBox(height: 8),
-            Text('You may see a password prompt', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+            Text(
+              'You may see a password prompt',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
           ],
         ),
       ),
@@ -529,7 +641,16 @@ class _HealthTabState extends State<HealthTab> {
 
     // Show result
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success ? 'Package list updated successfully!' : 'Failed to update package list. Check if pkexec is available.'), backgroundColor: success ? Colors.green : Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Package list updated successfully!'
+              : 'Failed to update package list. Check if pkexec is available.',
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
   }
 
   void _showAllIssues(BuildContext context, SystemHealth health) {
@@ -538,7 +659,10 @@ class _HealthTabState extends State<HealthTab> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(_getStatusIcon(health.overallStatus), color: _getStatusColor(health.overallStatus)),
+            Icon(
+              _getStatusIcon(health.overallStatus),
+              color: _getStatusColor(health.overallStatus),
+            ),
             const SizedBox(width: 12),
             const Text('System Issues'),
           ],
@@ -554,11 +678,18 @@ class _HealthTabState extends State<HealthTab> {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: _getStatusColor(issue.status).withAlpha(50),
-                  child: Icon(_getStatusIcon(issue.status), color: _getStatusColor(issue.status), size: 20),
+                  child: Icon(
+                    _getStatusIcon(issue.status),
+                    color: _getStatusColor(issue.status),
+                    size: 20,
+                  ),
                 ),
                 title: Text(
                   issue.title,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: _getStatusColor(issue.status)),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _getStatusColor(issue.status),
+                  ),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +699,11 @@ class _HealthTabState extends State<HealthTab> {
                     const SizedBox(height: 4),
                     Text(
                       issue.component,
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),

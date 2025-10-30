@@ -44,7 +44,7 @@ class _SourceControllerState extends State<SourceController> {
       },
       child: ListView.builder(
         shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: widget.sources.length,
         itemBuilder: (context, index) {
           PulseAudioSource source = widget.sources[index];

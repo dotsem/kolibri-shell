@@ -44,7 +44,7 @@ class _SinkControllerState extends State<SinkController> {
       },
       child: ListView.builder(
         shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: widget.sinks.length,
         itemBuilder: (context, index) {
           PulseAudioSink sink = widget.sinks[index];

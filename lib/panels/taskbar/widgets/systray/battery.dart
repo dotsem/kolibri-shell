@@ -45,7 +45,10 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
   void initState() {
     super.initState();
 
-    Process.run('bash', ['-c', 'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0']).then((value) {
+    Process.run('bash', [
+      '-c',
+      'ls /sys/class/power_supply/ | grep -q "^BAT" && echo 1 || echo 0',
+    ]).then((value) {
       setState(() {
         value.stdout.toString().trim() == '1' ? hasBattery = true : hasBattery = false;
       });
@@ -60,16 +63,18 @@ class _BatteryIndicatorState extends State<BatteryIndicator> {
           getInternalBatteryState();
         });
 
-        Timer.periodic(const Duration(seconds: 1), (timer) async {
-          batteryLevel = await battery.batteryLevel;
+        // Check battery level every 10 seconds instead of every second
+        // Battery level doesn't change that frequently
+        Timer.periodic(const Duration(seconds: 10), (timer) async {
+          final newLevel = await battery.batteryLevel;
 
-          setState(() {
-            batteryLevel = batteryLevel;
-            if (batteryLevel != previousBatteryLevel) {
+          if (batteryLevel != newLevel) {
+            setState(() {
+              batteryLevel = newLevel;
               previousBatteryLevel = batteryLevel;
               getInternalBatteryState();
-            }
-          });
+            });
+          }
         });
       }
     });

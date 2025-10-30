@@ -29,7 +29,11 @@ class _WorkspacesState extends State<Workspaces> {
   late int monitorOffset;
   int currentWorkspace = 0;
   final double workspaceSize = 30;
-  List<_WorkspaceClient> occupiedWorkspaces = List<_WorkspaceClient>.generate(10, (_) => const _WorkspaceClient(), growable: false);
+  List<_WorkspaceClient> occupiedWorkspaces = List<_WorkspaceClient>.generate(
+    10,
+    (_) => const _WorkspaceClient(),
+    growable: false,
+  );
   final WindowIconResolver _iconResolver = WindowIconResolver.instance;
 
   void initState() {
@@ -48,7 +52,8 @@ class _WorkspacesState extends State<Workspaces> {
   }
 
   bool inMonitorScope(int workspaceId) {
-    return workspaceId > monitorOffset && workspaceId <= monitorOffset + config.workspacesPerMonitor;
+    return workspaceId > monitorOffset &&
+        workspaceId <= monitorOffset + config.workspacesPerMonitor;
   }
 
   Future<void> updateOccupiedWorkspaces() async {
@@ -56,8 +61,16 @@ class _WorkspacesState extends State<Workspaces> {
       await _catalog.initialize();
     }
     List<Client> workspacesClients = await hyprCtl.getClients();
-    final List<_WorkspaceClient> nextState = List<_WorkspaceClient>.generate(10, (_) => const _WorkspaceClient(), growable: false);
+    final List<_WorkspaceClient> nextState = List<_WorkspaceClient>.generate(
+      10,
+      (_) => const _WorkspaceClient(),
+      growable: false,
+    );
     final Set<int> handledWorkspaceIds = <int>{};
+
+    // Batch icon resolution requests for better performance
+    final Map<String, Future<WindowIconData>> iconFutures = {};
+
     for (Client client in workspacesClients) {
       int id = client.workspace["id"];
       if (inMonitorScope(id) && !handledWorkspaceIds.contains(id)) {
@@ -74,11 +87,36 @@ class _WorkspacesState extends State<Workspaces> {
           continue;
         }
 
-        final WindowIconData iconData = await _iconResolver.resolve(clientClass);
-        nextState[workspaceIndex] = _WorkspaceClient(name: clientClass, iconData: iconData);
+        // Cache icon resolution futures to avoid duplicate requests
+        if (!iconFutures.containsKey(clientClass)) {
+          iconFutures[clientClass] = _iconResolver.resolve(clientClass);
+        }
         handledWorkspaceIds.add(id);
       }
     }
+
+    // Wait for all icon resolutions
+    final resolvedIcons = await Future.wait(iconFutures.values);
+    final iconMap = Map.fromIterables(iconFutures.keys, resolvedIcons);
+
+    // Build the final state with resolved icons
+    for (Client client in workspacesClients) {
+      int id = client.workspace["id"];
+      if (inMonitorScope(id)) {
+        final String? clientClass = client.clientClass;
+        final int workspaceIndex = id - monitorOffset - 1;
+        if (workspaceIndex >= 0 &&
+            workspaceIndex < nextState.length &&
+            clientClass != null &&
+            clientClass.isNotEmpty) {
+          final iconData = iconMap[clientClass];
+          if (iconData != null) {
+            nextState[workspaceIndex] = _WorkspaceClient(name: clientClass, iconData: iconData);
+          }
+        }
+      }
+    }
+
     if (!mounted) return;
     setState(() {
       occupiedWorkspaces = nextState;
@@ -86,13 +124,21 @@ class _WorkspacesState extends State<Workspaces> {
   }
 
   void _subscribeToEvents() {
-    _workspaceSubscription = hyprIPC.getEventStream(HyprlandEventType.workspace).listen(_updateWorkspace);
+    _workspaceSubscription = hyprIPC
+        .getEventStream(HyprlandEventType.workspace)
+        .listen(_updateWorkspace);
 
-    _openWindowSubscription = hyprIPC.getEventStream(HyprlandEventType.openwindow).listen((event) => updateOccupiedWorkspaces());
+    _openWindowSubscription = hyprIPC
+        .getEventStream(HyprlandEventType.openwindow)
+        .listen((event) => updateOccupiedWorkspaces());
 
-    _closeWindowSubscription = hyprIPC.getEventStream(HyprlandEventType.closewindow).listen((event) => updateOccupiedWorkspaces());
+    _closeWindowSubscription = hyprIPC
+        .getEventStream(HyprlandEventType.closewindow)
+        .listen((event) => updateOccupiedWorkspaces());
 
-    _moveWindowSubscription = hyprIPC.getEventStream(HyprlandEventType.movewindow).listen((event) => updateOccupiedWorkspaces());
+    _moveWindowSubscription = hyprIPC
+        .getEventStream(HyprlandEventType.movewindow)
+        .listen((event) => updateOccupiedWorkspaces());
   }
 
   void _updateWorkspace(HyprlandEvent event) {
@@ -120,12 +166,18 @@ class _WorkspacesState extends State<Workspaces> {
       topLeft = Radius.zero;
       bottomLeft = Radius.zero;
     }
-    if (workspaceId < config.workspacesPerMonitor - 1 && occupiedWorkspaces[workspaceId + 1].name != null) {
+    if (workspaceId < config.workspacesPerMonitor - 1 &&
+        occupiedWorkspaces[workspaceId + 1].name != null) {
       topRight = Radius.zero;
       bottomRight = Radius.zero;
     }
 
-    return BorderRadius.only(topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight);
+    return BorderRadius.only(
+      topLeft: topLeft,
+      topRight: topRight,
+      bottomLeft: bottomLeft,
+      bottomRight: bottomRight,
+    );
   }
 
   @override
@@ -141,12 +193,18 @@ class _WorkspacesState extends State<Workspaces> {
                       width: workspaceSize,
                       height: workspaceSize,
                       margin: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                      decoration: BoxDecoration(borderRadius: getBusyBorderRadius(i), color: Theme.of(context).colorScheme.primaryContainer),
+                      decoration: BoxDecoration(
+                        borderRadius: getBusyBorderRadius(i),
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                      ),
                     )
                   : SizedBox(width: workspaceSize, height: workspaceSize),
           ],
         ),
-        ActiveWorkspace(workspaceSize: workspaceSize, currentIndex: (currentWorkspace - 1) - monitorOffset),
+        ActiveWorkspace(
+          workspaceSize: workspaceSize,
+          currentIndex: (currentWorkspace - 1) - monitorOffset,
+        ),
 
         Row(
           children: [
@@ -193,7 +251,12 @@ class _WorkspacesState extends State<Workspaces> {
     }
 
     final WindowIconData iconData = client.iconData ?? WindowIconData.empty;
-    return _iconResolver.buildIcon(iconData, size: workspaceSize - 10, borderRadius: 12, fallbackColor: labelColor);
+    return _iconResolver.buildIcon(
+      iconData,
+      size: workspaceSize - 10,
+      borderRadius: 12,
+      fallbackColor: labelColor,
+    );
   }
 }
 

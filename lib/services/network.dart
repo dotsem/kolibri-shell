@@ -24,10 +24,7 @@ class NetworkInterfaceStatus {
 }
 
 class InterfaceThroughput {
-  InterfaceThroughput({
-    required this.rxBytesPerSecond,
-    required this.txBytesPerSecond,
-  });
+  InterfaceThroughput({required this.rxBytesPerSecond, required this.txBytesPerSecond});
 
   final double rxBytesPerSecond;
   final double txBytesPerSecond;
@@ -141,9 +138,7 @@ class NetworkService extends ChangeNotifier {
         }
       }
 
-      final sorted = strongestPerSsid.values
-          .map(AvailableWifiNetwork.new)
-          .toList()
+      final sorted = strongestPerSsid.values.map(AvailableWifiNetwork.new).toList()
         ..sort((a, b) => b.strength.compareTo(a.strength));
 
       availableNetworks = sorted;
@@ -199,7 +194,8 @@ class NetworkService extends ChangeNotifier {
     await refresh();
 
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // Poll every 3 seconds instead of 2 for reduced overhead
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       // ignore: discarded_futures
       refresh();
     });
@@ -207,10 +203,12 @@ class NetworkService extends ChangeNotifier {
 
   Future<void> _refreshConnections() async {
     try {
-      final result = await Process.run(
-        'nmcli',
-        ['-t', '-f', 'DEVICE,TYPE,STATE,CONNECTION', 'device'],
-      );
+      final result = await Process.run('nmcli', [
+        '-t',
+        '-f',
+        'DEVICE,TYPE,STATE,CONNECTION',
+        'device',
+      ]);
 
       if (result.exitCode != 0) {
         errorMessage = result.stderr.toString().trim().isEmpty
@@ -237,7 +235,9 @@ class NetworkService extends ChangeNotifier {
           final device = segments[0];
           final type = _parseInterfaceType(segments[1]);
           final state = segments[2];
-          final connectionName = segments.length > 3 && segments[3].trim().isNotEmpty ? segments[3].trim() : null;
+          final connectionName = segments.length > 3 && segments[3].trim().isNotEmpty
+              ? segments[3].trim()
+              : null;
 
           final status = NetworkInterfaceStatus(
             name: device,
@@ -306,7 +306,9 @@ class NetworkService extends ChangeNotifier {
     final Map<String, InterfaceThroughput> updated = {};
 
     final activeInterfaces = interfaces.where(
-      (iface) => iface.connected && (iface.type == NetworkInterfaceType.ethernet || iface.type == NetworkInterfaceType.wifi),
+      (iface) =>
+          iface.connected &&
+          (iface.type == NetworkInterfaceType.ethernet || iface.type == NetworkInterfaceType.wifi),
     );
 
     for (final iface in activeInterfaces) {
@@ -334,10 +336,7 @@ class NetworkService extends ChangeNotifier {
         }
       }
 
-      updated[iface.name] = InterfaceThroughput(
-        rxBytesPerSecond: rxRate,
-        txBytesPerSecond: txRate,
-      );
+      updated[iface.name] = InterfaceThroughput(rxBytesPerSecond: rxRate, txBytesPerSecond: txRate);
 
       _previousRxBytes[iface.name] = rx;
       _previousTxBytes[iface.name] = tx;

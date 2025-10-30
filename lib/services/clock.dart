@@ -56,8 +56,11 @@ class ClockService extends ChangeNotifier {
   TaskbarClock get now => _taskbarClock;
 
   setTimer(bool showSeconds) {
+    _timer?.cancel();
+
     if (showSeconds) {
-      _timer = Timer.periodic(Duration(milliseconds: 100), (_) {
+      // When showing seconds, only update when seconds actually change
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         final newClock = TaskbarClock.getClock();
 
         if (newClock.time != _taskbarClock.time || newClock.date != _taskbarClock.date) {
@@ -66,13 +69,23 @@ class ClockService extends ChangeNotifier {
         }
       });
     } else {
-      _timer = Timer.periodic(Duration(seconds: 1), (_) {
-        final newClock = TaskbarClock.getClock();
+      // When not showing seconds, only check every minute
+      final now = DateTime.now();
+      final nextMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute + 1);
+      final delayToNextMinute = nextMinute.difference(now);
 
-        if (newClock.time != _taskbarClock.time || newClock.date != _taskbarClock.date) {
-          _taskbarClock = newClock;
-          notifyListeners();
-        }
+      // Wait until next minute, then check every minute
+      Timer(delayToNextMinute, () {
+        _taskbarClock = TaskbarClock.getClock();
+        notifyListeners();
+
+        _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+          final newClock = TaskbarClock.getClock();
+          if (newClock.time != _taskbarClock.time || newClock.date != _taskbarClock.date) {
+            _taskbarClock = newClock;
+            notifyListeners();
+          }
+        });
       });
     }
   }
@@ -93,8 +106,15 @@ class TaskbarClock {
 
   static TaskbarClock getClock() {
     DateTime now = DateTime.now();
-    if (_showSeconds == null || !_showSeconds!) return TaskbarClock("${padMePls(now.day)}/${padMePls(now.month)}/${now.year}", "${padMePls(now.hour)}:${padMePls(now.minute)}");
-    return TaskbarClock("${padMePls(now.day)}/${padMePls(now.month)}/${now.year}", "${padMePls(now.hour)}:${padMePls(now.minute)}:${padMePls(now.second)}");
+    if (_showSeconds == null || !_showSeconds!)
+      return TaskbarClock(
+        "${padMePls(now.day)}/${padMePls(now.month)}/${now.year}",
+        "${padMePls(now.hour)}:${padMePls(now.minute)}",
+      );
+    return TaskbarClock(
+      "${padMePls(now.day)}/${padMePls(now.month)}/${now.year}",
+      "${padMePls(now.hour)}:${padMePls(now.minute)}:${padMePls(now.second)}",
+    );
   }
 
   static String padMePls(int time) {

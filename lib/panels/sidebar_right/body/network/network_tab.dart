@@ -46,17 +46,20 @@ class _NetworkTabState extends State<NetworkTab> {
           children.add(NetworkAvailableNetworksCard(networkService: service));
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(12),
-          children: children,
-        );
+        return ListView(padding: const EdgeInsets.all(12), children: children);
       },
     );
   }
 
   void _startPeriodicScan() {
     _scanTimer?.cancel();
-    _scanTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    // Reduce scan frequency from 5s to 10s when already connected
+    final scanInterval =
+        widget.networkService.wifiConnected || widget.networkService.ethernetConnected
+        ? const Duration(seconds: 15)
+        : const Duration(seconds: 8);
+
+    _scanTimer = Timer.periodic(scanInterval, (_) {
       _maybeScanForNetworks();
     });
   }

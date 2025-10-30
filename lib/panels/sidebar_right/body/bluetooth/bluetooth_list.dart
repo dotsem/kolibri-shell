@@ -37,15 +37,18 @@ class _BluetoothListState extends State<BluetoothList> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               widget.title,
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ListView.builder(
               shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.itemBuilder.length,
               itemBuilder: (_, index) {
                 BlueZDevice device = widget.itemBuilder[index];
@@ -56,12 +59,21 @@ class _BluetoothListState extends State<BluetoothList> {
                     children: [
                       Row(
                         children: [
-                          Padding(padding: const EdgeInsets.only(right: 4), child: Icon(getBluetoothIcon(device.icon), size: 24)),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(getBluetoothIcon(device.icon), size: 24),
+                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(children: [Text(device.name, style: TextStyle(fontSize: 18))]),
-                              Text(device.address, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.scrim)),
+                              Text(
+                                device.address,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(context).colorScheme.scrim,
+                                ),
+                              ),
                             ],
                           ),
                           Spacer(),
@@ -87,7 +99,8 @@ class _BluetoothListState extends State<BluetoothList> {
                                 ),
                         ],
                       ),
-                      if (index < widget.itemBuilder.length - 1) Divider(color: Colors.grey[700], endIndent: 4, indent: 4),
+                      if (index < widget.itemBuilder.length - 1)
+                        Divider(color: Colors.grey[700], endIndent: 4, indent: 4),
                     ],
                   ),
                 );
