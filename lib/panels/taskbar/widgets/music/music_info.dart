@@ -10,25 +10,23 @@ class MusicInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 24,
-              child: Text(
-                "${playerData.title} · ${playerData.artist.join(' · ')}",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color, fontWeight: FontWeight.w600),
-              ),
+    return Padding(
+      padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: 24,
+            child: Text(
+              "${playerData.title} · ${playerData.artist.join(' · ')}",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium!.color, fontWeight: FontWeight.w600),
             ),
-            MusicSlider(playerData: playerData, onChanged: onSeek),
-          ],
-        ),
+          ),
+          MusicSlider(playerData: playerData, onChanged: onSeek),
+        ],
       ),
     );
   }

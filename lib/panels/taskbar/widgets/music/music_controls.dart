@@ -33,81 +33,79 @@ class _MusicControlsState extends State<MusicControls> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_formatDuration(_currentPosition), style: Theme.of(context).textTheme.labelSmall),
+    return Padding(
+      padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_formatDuration(_currentPosition), style: Theme.of(context).textTheme.labelSmall),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    iconSize: 24,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
+                    onPressed: () async {
+                      await widget.playerData.previous();
+                      widget.updatePlayerData();
+                    },
+                    icon: const Icon(Icons.skip_previous),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+                    child: IconButton(
                       iconSize: 24,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
                       onPressed: () async {
-                        await widget.playerData.previous();
+                        await (widget.playerData.isPlaying ? widget.playerData.pause() : widget.playerData.play());
                         widget.updatePlayerData();
                       },
-                      icon: const Icon(Icons.skip_previous),
+                      icon: Icon(widget.playerData.isPlaying ? Icons.pause : Icons.play_arrow),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-                      child: IconButton(
-                        iconSize: 24,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
-                        onPressed: () async {
-                          await (widget.playerData.isPlaying ? widget.playerData.pause() : widget.playerData.play());
-                          widget.updatePlayerData();
-                        },
-                        icon: Icon(widget.playerData.isPlaying ? Icons.pause : Icons.play_arrow),
-                      ),
-                    ),
-                    IconButton(
-                      iconSize: 24,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
-                      onPressed: () async {
-                        await widget.playerData.next();
-                        widget.updatePlayerData();
-                      },
-                      icon: const Icon(Icons.skip_next),
-                    ),
-                  ],
-                ),
-                Text(_formatDuration(_maxPosition), style: Theme.of(context).textTheme.labelSmall),
-              ],
-            ),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                thumbShape: SliderComponentShape.noThumb,
-                trackHeight: 4,
-                overlayShape: SliderComponentShape.noOverlay,
-                activeTrackColor: SliderTheme.of(context).activeTrackColor,
-                inactiveTrackColor: SliderTheme.of(context).inactiveTrackColor,
-                trackShape: const RoundedRectSliderTrackShape(),
+                  ),
+                  IconButton(
+                    iconSize: 24,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(maxWidth: 32, maxHeight: 32),
+                    onPressed: () async {
+                      await widget.playerData.next();
+                      widget.updatePlayerData();
+                    },
+                    icon: const Icon(Icons.skip_next),
+                  ),
+                ],
               ),
-              child: Slider(
-                value: _currentPosition,
-                max: _maxPosition,
-                onChanged: (value) {
-                  setState(() => _pendingPosition = value);
-                },
-                onChangeEnd: (value) {
-                  setState(() => _pendingPosition = null);
-                  widget.positionChanged(value);
-                },
-              ),
+              Text(_formatDuration(_maxPosition), style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              thumbShape: SliderComponentShape.noThumb,
+              trackHeight: 4,
+              overlayShape: SliderComponentShape.noOverlay,
+              activeTrackColor: SliderTheme.of(context).activeTrackColor,
+              inactiveTrackColor: SliderTheme.of(context).inactiveTrackColor,
+              trackShape: const RoundedRectSliderTrackShape(),
             ),
-          ],
-        ),
+            child: Slider(
+              value: _currentPosition,
+              max: _maxPosition,
+              onChanged: (value) {
+                setState(() => _pendingPosition = value);
+              },
+              onChangeEnd: (value) {
+                setState(() => _pendingPosition = null);
+                widget.positionChanged(value);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
